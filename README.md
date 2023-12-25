@@ -23,3 +23,17 @@ curl -L -X POST 'http://127.0.0.1:9123/gas' -H 'Content-Type: application/json' 
 ```sh
 sui client publish --gas-budget 30000000
 ```
+
+## Running tests
+
+```sh
+sui move test
+```
+
+## Minting coins
+
+Replace `$PACKAGE_ID` and `$TREASURY_CAP` with your contract's package ID and treasury cap.
+
+```sh
+sui client call --package $PACKAGE_ID --module chirp --function mint --args $TREASURE_CAP 4000 $(sui client active-address) --gas-budget 20000000
+```
