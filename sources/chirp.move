@@ -41,6 +41,8 @@ module blhnsuicntrtctkn::chirp {
 
     #[test_only]
     use sui::test_scenario::{Self, next_tx, ctx};
+    #[test_only]
+    use std::string;
 
     #[test_only]
     /// Wrapper of module initializer for testing
@@ -49,9 +51,38 @@ module blhnsuicntrtctkn::chirp {
     }
 
     #[test]
+    fun currency_creation() {
+        // Initialize a mock sender address
+        let publisher = @0xA;
+
+        // Begins a multi transaction scenario with publisher as the sender
+        let scenario = test_scenario::begin(publisher);
+
+        // Run the chirp coin module init function
+        {
+            test_init(ctx(&mut scenario))
+        };
+        next_tx(&mut scenario, publisher);
+        {
+            let metadata = test_scenario::take_immutable<coin::CoinMetadata<CHIRP>>(&scenario);
+            let mintcap = test_scenario::take_from_sender<TreasuryCap<CHIRP>>(&scenario);
+            assert!(coin::get_decimals(&metadata) == CoinDecimals, 1);
+            assert!(string::index_of(&string::from_ascii(coin::get_symbol(&metadata)), &string::utf8(CoinSymbol)) == 0, 2);
+            assert!(string::index_of(&coin::get_name(&metadata), &string::utf8(CoinName)) == 0, 3);
+            assert!(string::index_of(&coin::get_description(&metadata), &string::utf8(CoinDescription)) == 0, 4);
+            assert!(coin::total_supply(&mintcap) == 0, 5);
+            test_scenario::return_immutable<coin::CoinMetadata<CHIRP>>(metadata);
+            test_scenario::return_to_address<TreasuryCap<CHIRP>>(publisher, mintcap);
+        };
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
     fun mint_normal() {
         // Initialize a mock sender address
         let publisher = @0xA;
+        let pool = @0xB;
 
         // Begins a multi transaction scenario with publisher as the sender
         let scenario = test_scenario::begin(publisher);
@@ -65,8 +96,14 @@ module blhnsuicntrtctkn::chirp {
         next_tx(&mut scenario, publisher);
         {
             let mintcap = test_scenario::take_from_sender<TreasuryCap<CHIRP>>(&scenario);
-            mint(&mut mintcap, MaximumSupply, publisher, test_scenario::ctx(&mut scenario));
+            mint(&mut mintcap, MaximumSupply, pool, test_scenario::ctx(&mut scenario));
             test_scenario::return_to_address<TreasuryCap<CHIRP>>(publisher, mintcap);
+        };
+        next_tx(&mut scenario, pool);
+        {
+            let coin = test_scenario::take_from_sender<coin::Coin<CHIRP>>(&scenario);
+            assert!(coin::value(&coin) == MaximumSupply, 1);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(pool, coin);
         };
 
         // Cleans up the scenario object
