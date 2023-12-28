@@ -20,7 +20,7 @@ module blhnsuicntrtctkn::chirp {
     const CoinDescription: vector<u8> = b"Chirp token description";
 
     /// Error code for minting more tokens than allowed
-    const EMintLimitReached: u64 = 2;
+    const EMintLimitReached: u64 = 0;
 
     struct CHIRP has drop {}
 
