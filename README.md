@@ -37,3 +37,11 @@ Replace `$PACKAGE_ID` and `$TREASURY_CAP` with your contract's package ID and tr
 ```sh
 sui client call --package $PACKAGE_ID --module chirp --function mint --args $TREASURE_CAP 4000 $(sui client active-address) --gas-budget 20000000
 ```
+
+## Sending coins to others
+
+Replace `$COIN_ID` and `$RECIPIENT` with your coin ID and recipient address.
+
+```sh
+sui client pay --input-coins $COIN_ID --gas-budget 3000000 --recipients $RECIPIENT --amounts 10000000000
+```
