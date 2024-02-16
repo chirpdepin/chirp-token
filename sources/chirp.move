@@ -25,20 +25,23 @@ module blhnsuicntrtctkn::chirp {
     /// Error code for minting not a whole number of tokens
     const EInvalidMintAmount: u64 = 1;
 
-    /// Liquidity pool for netwrok keepers
-    const NetworkKeepers: address = @0xAA;
+    // Liquidity pool for netwrok keepers
+    const Keepers: address = @0xAA;
+
+    // Liquidity pool for netwrok keepers growth
+    const KeepersGrowth: address = @0xBB;
 
     /// Liquidity pool for investors
-    const Investors: address = @0xBB;
+    const Investors: address = @0xCC;
 
     /// Token treasury
-    const TokenTreasury: address = @0xCC;
+    const TokenTreasury: address = @0xDD;
 
     /// Liquidity pool for CHIRP team
-    const Team: address = @0xDD;
+    const Team: address = @0xEE;
 
     /// Strategic advisors pool
-    const StrategicAdvisors: address = @0xEE;
+    const StrategicAdvisors: address = @0xFF;
 
     struct CHIRP has drop {}
 
@@ -54,10 +57,11 @@ module blhnsuicntrtctkn::chirp {
     /// Mint tokens and transfer them to the pools according to the tokenomics
     public entry fun mint(mint_cap: &mut TreasuryCap<CHIRP>, amount: u64, ctx: &mut TxContext) {
         assert!(amount <= (MaximumSupply - coin::total_supply(mint_cap)), EMintLimitReached);
-        // the amaunt must be the whole tokens
+        // the amount must be the whole tokens
         assert!(amount % 10_000_000_000 == 0, EInvalidMintAmount);
 
-        coin::mint_and_transfer(mint_cap, amount/100 * 50 , NetworkKeepers, ctx);
+        coin::mint_and_transfer(mint_cap, amount/100 * 30 , Keepers, ctx);
+        coin::mint_and_transfer(mint_cap, amount/100 * 20 , KeepersGrowth, ctx);
         coin::mint_and_transfer(mint_cap, amount/100 * 15, Investors, ctx);
         coin::mint_and_transfer(mint_cap, amount/100 * 15, TokenTreasury, ctx);
         coin::mint_and_transfer(mint_cap, amount/100 * 15, Team, ctx);
@@ -120,10 +124,15 @@ module blhnsuicntrtctkn::chirp {
         };
         next_tx(&mut scenario, publisher);
         {
-            // Network keepers pool should have 50% of the total supply
-            let networkKeepersCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, NetworkKeepers);
-            assert!(coin::value(&networkKeepersCoin) == MaximumSupply/100 * 50, 1);
-            test_scenario::return_to_address<coin::Coin<CHIRP>>(NetworkKeepers, networkKeepersCoin);
+            // Network keepers pool should have 30% of the minted tokens
+            let networkKeepersCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Keepers);
+            assert!(coin::value(&networkKeepersCoin) == MaximumSupply/100 * 30, 1);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(Keepers, networkKeepersCoin);
+
+            // Network keepersi growth pool should have 20% of the minted tokens
+            let keepersGrowthCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, KeepersGrowth);
+            assert!(coin::value(&keepersGrowthCoin) == MaximumSupply/100 * 20, 1);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(KeepersGrowth, keepersGrowthCoin);
 
             // Investors pool should have 15% of the total supply
             let investorsCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Investors);
