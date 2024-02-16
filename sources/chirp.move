@@ -26,22 +26,22 @@ module blhnsuicntrtctkn::chirp {
     const EInvalidMintAmount: u64 = 1;
 
     // Liquidity pool for netwrok keepers
-    const Keepers: address = @0xAA;
+    const Keepers: address = @0x0e536a4f3cfd7f35533aa52a560dc0cae3e394bdad8dd27e1f9996284015a48e;
 
     // Liquidity pool for netwrok keepers growth
-    const KeepersGrowth: address = @0xBB;
+    const KeepersGrowth: address = @0x522366d83f5e03cf544ab02c1a2e2e60db2000af22e76c8ead22fb6eebdd0ae4;
 
     /// Liquidity pool for investors
-    const Investors: address = @0xCC;
+    const Investors: address = @0xd831259f48614d134362fc60d1be6dc6988061d0758a1dece5066a329655cf84;
 
     /// Token treasury
-    const TokenTreasury: address = @0xDD;
+    const TokenTreasury: address = @0x719a1df9e1f94b349e7888c4a378075b9a598b0e88e99cae63607abc3d9c40c4;
 
     /// Liquidity pool for CHIRP team
-    const Team: address = @0xEE;
+    const Team: address = @0x6b4f0f377d72cdeb5852c5b86b469566025fc3a74c166b25e05e617437e18b4c;
 
     /// Strategic advisors pool
-    const StrategicAdvisors: address = @0xFF;
+    const StrategicAdvisors: address = @0x7f8496345a123fedbc9cbf19a9c1a4bcfa12281be277134fdceacda5d8e5f0d2;
 
     struct CHIRP has drop {}
 
