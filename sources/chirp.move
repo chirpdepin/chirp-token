@@ -115,43 +115,45 @@ module blhnsuicntrtctkn::chirp {
             test_init(ctx(&mut scenario))
         };
 
-        // Mint MaximumSupply tokens
+        let tokensToMint: u64 = 10_000_000_000;
+
+        // Mint `tokensToMint` tokens
         next_tx(&mut scenario, publisher);
         {
             let mintcap = test_scenario::take_from_sender<TreasuryCap<CHIRP>>(&scenario);
-            mint(&mut mintcap, MaximumSupply, test_scenario::ctx(&mut scenario));
+            mint(&mut mintcap, tokensToMint, test_scenario::ctx(&mut scenario));
             test_scenario::return_to_sender<TreasuryCap<CHIRP>>(&scenario, mintcap);
         };
         next_tx(&mut scenario, publisher);
         {
             // Network keepers pool should have 30% of the minted tokens
             let networkKeepersCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Keepers);
-            assert!(coin::value(&networkKeepersCoin) == MaximumSupply/100 * 30, 1);
+            assert!(coin::value(&networkKeepersCoin) == tokensToMint/100 * 30, 1);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(Keepers, networkKeepersCoin);
 
-            // Network keepersi growth pool should have 20% of the minted tokens
+            // Network keepers growth pool should have 20% of the minted tokens
             let keepersGrowthCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, KeepersGrowth);
-            assert!(coin::value(&keepersGrowthCoin) == MaximumSupply/100 * 20, 1);
+            assert!(coin::value(&keepersGrowthCoin) == tokensToMint/100 * 20, 1);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(KeepersGrowth, keepersGrowthCoin);
 
-            // Investors pool should have 15% of the total supply
+            // Investors pool should have 15% of the mintet tokens
             let investorsCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Investors);
-            assert!(coin::value(&investorsCoin) == MaximumSupply/100 * 15, 2);
+            assert!(coin::value(&investorsCoin) == tokensToMint/100 * 15, 2);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(Investors, investorsCoin);
 
-            // Token treasury pool should have 15% of the total supply
+            // Token treasury pool should have 15% of the minted tokens
             let tokenTreasuryCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, TokenTreasury);
-            assert!(coin::value(&tokenTreasuryCoin) == MaximumSupply/100 * 15, 3);
+            assert!(coin::value(&tokenTreasuryCoin) == tokensToMint/100 * 15, 3);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(TokenTreasury, tokenTreasuryCoin);
 
-            // Team pool should have 15% of the total supply
+            // Team pool should have 15% of the minted tokens
             let teamCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Team);
-            assert!(coin::value(&teamCoin) == MaximumSupply/100 * 15, 4);
+            assert!(coin::value(&teamCoin) == tokensToMint/100 * 15, 4);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(Team, teamCoin);
 
-            // Strategic advisors pool should have 5% of the total supply
+            // Strategic advisors pool should have 5% of the minted tokens
             let strategicAdvisorsCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, StrategicAdvisors);
-            assert!(coin::value(&strategicAdvisorsCoin) == MaximumSupply/100 * 5, 5);
+            assert!(coin::value(&strategicAdvisorsCoin) == tokensToMint/100 * 5, 5);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(StrategicAdvisors, strategicAdvisorsCoin);
         };
         test_scenario::end(scenario);
