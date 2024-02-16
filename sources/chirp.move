@@ -22,6 +22,27 @@ module blhnsuicntrtctkn::chirp {
     /// Error code for minting more tokens than allowed
     const EMintLimitReached: u64 = 0;
 
+    /// Error code for minting not a whole number of tokens
+    const EInvalidMintAmount: u64 = 1;
+
+    // Liquidity pool for netwrok keepers
+    const Keepers: address = @0x0e536a4f3cfd7f35533aa52a560dc0cae3e394bdad8dd27e1f9996284015a48e;
+
+    // Liquidity pool for netwrok keepers growth
+    const KeepersGrowth: address = @0x522366d83f5e03cf544ab02c1a2e2e60db2000af22e76c8ead22fb6eebdd0ae4;
+
+    /// Liquidity pool for investors
+    const Investors: address = @0xd831259f48614d134362fc60d1be6dc6988061d0758a1dece5066a329655cf84;
+
+    /// Token treasury
+    const TokenTreasury: address = @0x719a1df9e1f94b349e7888c4a378075b9a598b0e88e99cae63607abc3d9c40c4;
+
+    /// Liquidity pool for CHIRP team
+    const Team: address = @0x6b4f0f377d72cdeb5852c5b86b469566025fc3a74c166b25e05e617437e18b4c;
+
+    /// Strategic advisors pool
+    const StrategicAdvisors: address = @0x7f8496345a123fedbc9cbf19a9c1a4bcfa12281be277134fdceacda5d8e5f0d2;
+
     struct CHIRP has drop {}
 
     #[allow(unused_function)]
@@ -33,10 +54,18 @@ module blhnsuicntrtctkn::chirp {
         transfer::public_transfer(mintcap, tx_context::sender(ctx))
     }
 
-    /// Mint tokens to the recipient
-    public entry fun mint(mint_cap: &mut TreasuryCap<CHIRP>, amount: u64, recipient: address, ctx: &mut TxContext) {
+    /// Mint tokens and transfer them to the pools according to the tokenomics
+    public entry fun mint(mint_cap: &mut TreasuryCap<CHIRP>, amount: u64, ctx: &mut TxContext) {
         assert!(amount <= (MaximumSupply - coin::total_supply(mint_cap)), EMintLimitReached);
-        coin::mint_and_transfer(mint_cap, amount, recipient, ctx)
+        // the amount must be the whole tokens
+        assert!(amount % 10_000_000_000 == 0, EInvalidMintAmount);
+
+        coin::mint_and_transfer(mint_cap, amount/100 * 30 , Keepers, ctx);
+        coin::mint_and_transfer(mint_cap, amount/100 * 20 , KeepersGrowth, ctx);
+        coin::mint_and_transfer(mint_cap, amount/100 * 15, Investors, ctx);
+        coin::mint_and_transfer(mint_cap, amount/100 * 15, TokenTreasury, ctx);
+        coin::mint_and_transfer(mint_cap, amount/100 * 15, Team, ctx);
+        coin::mint_and_transfer(mint_cap, amount/100 * 5, StrategicAdvisors, ctx);
     }
 
     #[test_only]
@@ -80,57 +109,89 @@ module blhnsuicntrtctkn::chirp {
 
     #[test]
     fun mint_normal() {
-        // Initialize a mock sender address
         let publisher = @0xA;
-        let pool = @0xB;
-
-        // Begins a multi transaction scenario with publisher as the sender
         let scenario = test_scenario::begin(publisher);
-
-        // Run the chirp coin module init function
         {
             test_init(ctx(&mut scenario))
         };
 
-        // Mint a `Coin<CHIRP>` object
+        let tokensToMint: u64 = 10_000_000_000;
+
+        // Mint `tokensToMint` tokens
         next_tx(&mut scenario, publisher);
         {
             let mintcap = test_scenario::take_from_sender<TreasuryCap<CHIRP>>(&scenario);
-            mint(&mut mintcap, MaximumSupply, pool, test_scenario::ctx(&mut scenario));
-            test_scenario::return_to_address<TreasuryCap<CHIRP>>(publisher, mintcap);
+            mint(&mut mintcap, tokensToMint, test_scenario::ctx(&mut scenario));
+            test_scenario::return_to_sender<TreasuryCap<CHIRP>>(&scenario, mintcap);
         };
-        next_tx(&mut scenario, pool);
+        next_tx(&mut scenario, publisher);
         {
-            let coin = test_scenario::take_from_sender<coin::Coin<CHIRP>>(&scenario);
-            assert!(coin::value(&coin) == MaximumSupply, 1);
-            test_scenario::return_to_address<coin::Coin<CHIRP>>(pool, coin);
-        };
+            // Network keepers pool should have 30% of the minted tokens
+            let networkKeepersCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Keepers);
+            assert!(coin::value(&networkKeepersCoin) == tokensToMint/100 * 30, 1);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(Keepers, networkKeepersCoin);
 
-        // Cleans up the scenario object
+            // Network keepers growth pool should have 20% of the minted tokens
+            let keepersGrowthCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, KeepersGrowth);
+            assert!(coin::value(&keepersGrowthCoin) == tokensToMint/100 * 20, 1);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(KeepersGrowth, keepersGrowthCoin);
+
+            // Investors pool should have 15% of the mintet tokens
+            let investorsCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Investors);
+            assert!(coin::value(&investorsCoin) == tokensToMint/100 * 15, 2);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(Investors, investorsCoin);
+
+            // Token treasury pool should have 15% of the minted tokens
+            let tokenTreasuryCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, TokenTreasury);
+            assert!(coin::value(&tokenTreasuryCoin) == tokensToMint/100 * 15, 3);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(TokenTreasury, tokenTreasuryCoin);
+
+            // Team pool should have 15% of the minted tokens
+            let teamCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Team);
+            assert!(coin::value(&teamCoin) == tokensToMint/100 * 15, 4);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(Team, teamCoin);
+
+            // Strategic advisors pool should have 5% of the minted tokens
+            let strategicAdvisorsCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, StrategicAdvisors);
+            assert!(coin::value(&strategicAdvisorsCoin) == tokensToMint/100 * 5, 5);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(StrategicAdvisors, strategicAdvisorsCoin);
+        };
         test_scenario::end(scenario);
     }
 
     #[test]
     #[expected_failure(abort_code = EMintLimitReached)]
     fun mint_limit_reached() {
-        // Initialize a mock sender address
         let publisher = @0xA;
-        // Begins a multi transaction scenario with publisher as the sender
         let scenario = test_scenario::begin(publisher);
-
-        // Run the chirp coin module init function
         {
             test_init(ctx(&mut scenario))
         };
-        // Mint a `Coin<CHIRP>` object
+        // Mint more than MaximumSupply tokens
         next_tx(&mut scenario, publisher);
         {
             let mintcap = test_scenario::take_from_sender<TreasuryCap<CHIRP>>(&scenario);
-            mint(&mut mintcap, MaximumSupply + 1, publisher, test_scenario::ctx(&mut scenario));
-            test_scenario::return_to_address<TreasuryCap<CHIRP>>(publisher, mintcap);
+            mint(&mut mintcap, MaximumSupply + 10_000_000_000, test_scenario::ctx(&mut scenario));
+            test_scenario::return_to_sender<TreasuryCap<CHIRP>>(&scenario, mintcap);
         };
+        test_scenario::end(scenario);
+    }
 
-        // Cleans up the scenario object
+    #[test]
+    #[expected_failure(abort_code = EInvalidMintAmount)]
+    fun mint_invalid_amount() {
+        let publisher = @0xA;
+        let scenario = test_scenario::begin(publisher);
+        {
+            test_init(ctx(&mut scenario))
+        };
+        // Mint amount of tokens that is not a whole number
+        next_tx(&mut scenario, publisher);
+        {
+            let mintcap = test_scenario::take_from_sender<TreasuryCap<CHIRP>>(&scenario);
+            mint(&mut mintcap, 100, test_scenario::ctx(&mut scenario));
+            test_scenario::return_to_sender<TreasuryCap<CHIRP>>(&scenario, mintcap);
+        };
         test_scenario::end(scenario);
     }
 }
