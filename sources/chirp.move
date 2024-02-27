@@ -26,22 +26,22 @@ module blhnsuicntrtctkn::chirp {
     const EInvalidMintAmount: u64 = 1;
 
     // Liquidity pool for netwrok keepers
-    const Keepers: address = @0x0e536a4f3cfd7f35533aa52a560dc0cae3e394bdad8dd27e1f9996284015a48e;
+    const Keepers: address = @0x02ab60f0e82d58cbd047dd27d9e09d08a9b41d8d08f2f08bd0f25424d08c7f77;
 
     // Liquidity pool for netwrok keepers growth
-    const KeepersGrowth: address = @0x522366d83f5e03cf544ab02c1a2e2e60db2000af22e76c8ead22fb6eebdd0ae4;
+    const KeepersGrowth: address = @0x021e2fcdb57234a42a588654bc2b31fa1a53896cdc11b81d9332a5287cd0f248;
 
     /// Liquidity pool for investors
-    const Investors: address = @0xd831259f48614d134362fc60d1be6dc6988061d0758a1dece5066a329655cf84;
+    const Investors: address = @0x6bf9e238beb4391690ec02ce41cb480f91a78178819574bf6e9882cc238920d3;
 
     /// Token treasury
-    const TokenTreasury: address = @0x719a1df9e1f94b349e7888c4a378075b9a598b0e88e99cae63607abc3d9c40c4;
+    const TokenTreasury: address = @0xc196c590ff20d63d17271c8dcceafc3432a47f629292fa9f552f5c8c4ea92b4b;
 
     /// Liquidity pool for CHIRP team
-    const Team: address = @0x6b4f0f377d72cdeb5852c5b86b469566025fc3a74c166b25e05e617437e18b4c;
+    const Team: address = @0xd841709b605bafdcb27d544b0a76e35cd3e904a6b6f5b4347e836c1dd24f6306;
 
     /// Strategic advisors pool
-    const StrategicAdvisors: address = @0x7f8496345a123fedbc9cbf19a9c1a4bcfa12281be277134fdceacda5d8e5f0d2;
+    const StrategicAdvisors: address = @0x573a0841ab7c22c1e5c714c4e5ab1c440546c8c36c2b94eba62665c5f75237d6;
 
     struct CHIRP has drop {}
 
