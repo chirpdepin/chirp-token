@@ -51,7 +51,12 @@ module blhnsuicntrtctkn::chirp {
     fun init(witness: CHIRP, ctx: &mut TxContext) {
         let (mintcap, metadata) = coin::create_currency(witness, CoinDecimals, CoinSymbol, CoinName, CoinDescription, option::none(), ctx);
         transfer::public_freeze_object(metadata);
-        transfer::public_transfer(mintcap, tx_context::sender(ctx))
+
+        // Pre-mint the tokens and transfer them to the pools
+        coin::mint_and_transfer(&mut mintcap, MaximumSupply/100 * 15 / 100 * 10, Investors, ctx);
+        coin::mint_and_transfer(&mut mintcap, MaximumSupply/100 * 16 / 100 * 10, TokenTreasury, ctx);
+
+        transfer::public_transfer(mintcap, tx_context::sender(ctx));
     }
 
     /// Mint tokens and transfer them to the pools according to the tokenomics
@@ -99,7 +104,17 @@ module blhnsuicntrtctkn::chirp {
             assert!(string::index_of(&string::from_ascii(coin::get_symbol(&metadata)), &string::utf8(CoinSymbol)) == 0, 2);
             assert!(string::index_of(&coin::get_name(&metadata), &string::utf8(CoinName)) == 0, 3);
             assert!(string::index_of(&coin::get_description(&metadata), &string::utf8(CoinDescription)) == 0, 4);
-            assert!(coin::total_supply(&mintcap) == 0, 5);
+
+            // Investors pool should have 1.5% of the MaximumSupply pre-minted
+            let investors = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Investors);
+            assert!(coin::value(&investors) == MaximumSupply/100 * 15 / 100 * 10, 1);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(Investors, investors);
+
+            // Treasury pool should have 1.6% of the MaximumSupply pre-minted
+            let tokenTreasury = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, TokenTreasury);
+            assert!(coin::value(&tokenTreasury) == MaximumSupply/100 * 16 / 100 * 10, 2);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(TokenTreasury, tokenTreasury);
+
             test_scenario::return_immutable<coin::CoinMetadata<CHIRP>>(metadata);
             test_scenario::return_to_address<TreasuryCap<CHIRP>>(publisher, mintcap);
         };
