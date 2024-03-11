@@ -56,8 +56,9 @@ module blhnsuicntrtctkn::chirp {
         transfer::public_freeze_object(metadata);
 
         // Pre-mint the tokens and transfer them to the pools
-        coin::mint_and_transfer(&mut mintcap, MaximumSupply/100 * 15 / 100 * 10, Investors, ctx);
-        coin::mint_and_transfer(&mut mintcap, MaximumSupply/100 * 16 / 100 * 10, TokenTreasury, ctx);
+        coin::mint_and_transfer(&mut mintcap, 9_000_000_0000000000, Investors, ctx);
+        coin::mint_and_transfer(&mut mintcap, 3_300_000_0000000000, TokenTreasury, ctx);
+        coin::mint_and_transfer(&mut mintcap, 12_000_000_0000000000, Liquidity, ctx);
 
         transfer::public_transfer(mintcap, tx_context::sender(ctx));
     }
@@ -109,15 +110,20 @@ module blhnsuicntrtctkn::chirp {
             assert!(string::index_of(&coin::get_name(&metadata), &string::utf8(CoinName)) == 0, 3);
             assert!(string::index_of(&coin::get_description(&metadata), &string::utf8(CoinDescription)) == 0, 4);
 
-            // Investors pool should have 1.5% of the MaximumSupply pre-minted
+            // Investors pool should have 9.000.000 tokens pre-minted
             let investors = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Investors);
-            assert!(coin::value(&investors) == MaximumSupply/100 * 15 / 100 * 10, 1);
+            assert!(coin::value(&investors) == 9_000_000_0000000000, 5);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(Investors, investors);
 
-            // Treasury pool should have 1.6% of the MaximumSupply pre-minted
+            // Treasury pool should have 3.300.000 tokens pre-minted
             let tokenTreasury = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, TokenTreasury);
-            assert!(coin::value(&tokenTreasury) == MaximumSupply/100 * 16 / 100 * 10, 2);
+            assert!(coin::value(&tokenTreasury) == 3_300_000_0000000000, 6);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(TokenTreasury, tokenTreasury);
+
+            // Liquidity pool should have 12.000.000 tokens pre-minted
+            let liquidity = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Liquidity);
+            assert!(coin::value(&liquidity) == 12_000_000_0000000000, 7);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(Liquidity, liquidity);
 
             test_scenario::return_immutable<coin::CoinMetadata<CHIRP>>(metadata);
             test_scenario::return_to_address<TreasuryCap<CHIRP>>(publisher, mintcap);
