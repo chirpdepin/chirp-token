@@ -43,6 +43,9 @@ module blhnsuicntrtctkn::chirp {
     /// Strategic advisors pool
     const StrategicAdvisors: address = @0x573a0841ab7c22c1e5c714c4e5ab1c440546c8c36c2b94eba62665c5f75237d6;
 
+    // Liquidity pool
+    const Liquidity: address = @0x9575fc19fedcd62a406385dcc7607c567d91a6df94e2eea9a941051bbb6ce65e;
+
     struct CHIRP has drop {}
 
     #[allow(unused_function)]
@@ -68,9 +71,10 @@ module blhnsuicntrtctkn::chirp {
         coin::mint_and_transfer(mint_cap, amount/100 * 30 , Keepers, ctx);
         coin::mint_and_transfer(mint_cap, amount/100 * 20 , KeepersGrowth, ctx);
         coin::mint_and_transfer(mint_cap, amount/100 * 15, Investors, ctx);
-        coin::mint_and_transfer(mint_cap, amount/100 * 15, TokenTreasury, ctx);
+        coin::mint_and_transfer(mint_cap, amount/100 * 11, TokenTreasury, ctx);
         coin::mint_and_transfer(mint_cap, amount/100 * 15, Team, ctx);
         coin::mint_and_transfer(mint_cap, amount/100 * 5, StrategicAdvisors, ctx);
+        coin::mint_and_transfer(mint_cap, amount/100 * 4, Liquidity, ctx);
     }
 
     #[test_only]
@@ -156,9 +160,9 @@ module blhnsuicntrtctkn::chirp {
             assert!(coin::value(&investorsCoin) == tokensToMint/100 * 15, 2);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(Investors, investorsCoin);
 
-            // Token treasury pool should have 15% of the minted tokens
+            // Token treasury pool should have 11% of the minted tokens
             let tokenTreasuryCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, TokenTreasury);
-            assert!(coin::value(&tokenTreasuryCoin) == tokensToMint/100 * 15, 3);
+            assert!(coin::value(&tokenTreasuryCoin) == tokensToMint/100 * 11, 3);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(TokenTreasury, tokenTreasuryCoin);
 
             // Team pool should have 15% of the minted tokens
@@ -170,6 +174,10 @@ module blhnsuicntrtctkn::chirp {
             let strategicAdvisorsCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, StrategicAdvisors);
             assert!(coin::value(&strategicAdvisorsCoin) == tokensToMint/100 * 5, 5);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(StrategicAdvisors, strategicAdvisorsCoin);
+
+            let liquidityCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Liquidity);
+            assert!(coin::value(&liquidityCoin) == tokensToMint/100 * 4, 6);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(Liquidity, liquidityCoin);
         };
         test_scenario::end(scenario);
     }
