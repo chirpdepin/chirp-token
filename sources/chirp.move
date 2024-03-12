@@ -37,9 +37,11 @@ module blhnsuicntrtctkn::chirp {
     /// Token treasury
     const TokenTreasury: address = @0xc196c590ff20d63d17271c8dcceafc3432a47f629292fa9f552f5c8c4ea92b4b;
 
+    #[allow(unused_const)]
     /// Liquidity pool for CHIRP team
     const Team: address = @0xd841709b605bafdcb27d544b0a76e35cd3e904a6b6f5b4347e836c1dd24f6306;
 
+    #[allow(unused_const)]
     /// Strategic advisors pool
     const StrategicAdvisors: address = @0x573a0841ab7c22c1e5c714c4e5ab1c440546c8c36c2b94eba62665c5f75237d6;
 
@@ -64,16 +66,16 @@ module blhnsuicntrtctkn::chirp {
     }
 
     /// Mint tokens and transfer them to the pools according to the tokenomics
-    public entry fun mint(mint_cap: &mut TreasuryCap<CHIRP>, amount: u64, ctx: &mut TxContext) {
-        assert!(amount <= (MaximumSupply - coin::total_supply(mint_cap)), EMintLimitReached);
+    public entry fun mint(mint_cap: &mut TreasuryCap<CHIRP>, cents: u64, ctx: &mut TxContext) {
+        assert!(cents <= (MaximumSupply - coin::total_supply(mint_cap)), EMintLimitReached);
         // the amount must be the whole tokens
-        assert!(amount % 10_000_000_000 == 0, EInvalidMintAmount);
+        assert!(cents % 10_000_000_000 == 0, EInvalidMintAmount);
 
-        coin::mint_and_transfer(mint_cap, amount/100 * 30 , Keepers, ctx);
-        coin::mint_and_transfer(mint_cap, amount/100 * 20 , KeepersGrowth, ctx);
-        coin::mint_and_transfer(mint_cap, amount/100 * 15, Investors, ctx);
-        coin::mint_and_transfer(mint_cap, amount/100 * 31, TokenTreasury, ctx);
-        coin::mint_and_transfer(mint_cap, amount/100 * 4, Liquidity, ctx);
+        let amount = cents/10_000_000_000;
+        coin::mint_and_transfer(mint_cap, amount * 1903222709, Keepers, ctx);
+        coin::mint_and_transfer(mint_cap, amount * 1280122892 , KeepersGrowth, ctx);
+        coin::mint_and_transfer(mint_cap, amount * 5760553013 , Investors, ctx);
+        coin::mint_and_transfer(mint_cap, amount * 1056101386, TokenTreasury, ctx);
     }
 
     #[test_only]
@@ -149,37 +151,25 @@ module blhnsuicntrtctkn::chirp {
         };
         next_tx(&mut scenario, publisher);
         {
-            // Network keepers pool should have 30% of the minted tokens
+            // Network keepers pool should have 19.03222709% of the minted tokens
             let networkKeepersCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Keepers);
-            assert!(coin::value(&networkKeepersCoin) == tokensToMint/100 * 30, 1);
+            assert!(coin::value(&networkKeepersCoin) == tokensToMint/10_000_000_000 * 1903222709, 1);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(Keepers, networkKeepersCoin);
 
-            // Network keepers growth pool should have 20% of the minted tokens
+            // Network keepers growth pool should have 12.80122892% of the minted tokens
             let keepersGrowthCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, KeepersGrowth);
-            assert!(coin::value(&keepersGrowthCoin) == tokensToMint/100 * 20, 1);
+            assert!(coin::value(&keepersGrowthCoin) == tokensToMint/10_000_000_000 * 1280122892, 1);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(KeepersGrowth, keepersGrowthCoin);
 
-            // Investors pool should have 15% of the mintet tokens
+            // Investors pool should have 57.60553013% of the minted tokens
             let investorsCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Investors);
-            assert!(coin::value(&investorsCoin) == tokensToMint/100 * 15, 2);
+            assert!(coin::value(&investorsCoin) == tokensToMint/10_000_000_000 * 5760553013,  2);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(Investors, investorsCoin);
 
-            // Token treasury pool should have 31% of the minted tokens
+            // Token treasury pool should have 10.56101386% of the minted tokens
             let tokenTreasuryCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, TokenTreasury);
-            assert!(coin::value(&tokenTreasuryCoin) == tokensToMint/100 * 31, 3);
+            assert!(coin::value(&tokenTreasuryCoin) == tokensToMint/10_000_000_000 * 1056101386, 3);
             test_scenario::return_to_address<coin::Coin<CHIRP>>(TokenTreasury, tokenTreasuryCoin);
-
-            // Team pool must NOT have 15% of the minted tokens
-            let teamCoinID = test_scenario::most_recent_id_for_address<coin::Coin<CHIRP>>(Team);
-            assert!(option::is_some(&teamCoinID) == false, 4);
-
-            // Strategic advisors pool must NOT have 5% of the minted tokens
-            let strategicAdvisorsCoinID = test_scenario::most_recent_id_for_address<coin::Coin<CHIRP>>(StrategicAdvisors);
-            assert!(option::is_some(&strategicAdvisorsCoinID) == false, 5);
-
-            let liquidityCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Liquidity);
-            assert!(coin::value(&liquidityCoin) == tokensToMint/100 * 4, 6);
-            test_scenario::return_to_address<coin::Coin<CHIRP>>(Liquidity, liquidityCoin);
         };
         test_scenario::end(scenario);
     }
