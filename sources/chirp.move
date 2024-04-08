@@ -3,6 +3,7 @@ module blhnsuicntrtctkn::chirp {
     use sui::coin::{Self, TreasuryCap};
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
+    use sui::url;
 
     /// Maximum supply of CHIRP tokens
     const MaximumSupply: u64 = 3000000000000000000u64;
@@ -12,6 +13,9 @@ module blhnsuicntrtctkn::chirp {
 
     /// Coin symbol in favor of ISO 4217
     const CoinSymbol: vector<u8> = b"CHIRP";
+
+    /// Coin icon
+    const CoinIcon: vector<u8> = b"https://storage.googleapis.com/chirp-blhn-assets/images/CHIRP_White_OBG.svg";
 
     /// Coin human readable name
     const CoinName: vector<u8> = b"Chirp Token";
@@ -54,7 +58,7 @@ module blhnsuicntrtctkn::chirp {
     /// Module initializer is called once on module publish. A mint
     /// cap is sent to the publisher, who then controls minting
     fun init(witness: CHIRP, ctx: &mut TxContext) {
-        let (mintcap, metadata) = coin::create_currency(witness, CoinDecimals, CoinSymbol, CoinName, CoinDescription, option::none(), ctx);
+        let (mintcap, metadata) = coin::create_currency(witness, CoinDecimals, CoinSymbol, CoinName, CoinDescription, option::some(url::new_unsafe_from_bytes(CoinIcon)), ctx);
         transfer::public_freeze_object(metadata);
 
         // Pre-mint the tokens and transfer them to the pools
