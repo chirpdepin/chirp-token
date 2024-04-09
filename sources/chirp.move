@@ -1,80 +1,82 @@
 /// This module implements the CHIRP token, a custom token for the Chirp Network.
 module blhnsuicntrtctkn::chirp {
     // === Imports ===
-    use sui::coin::{Self, TreasuryCap};
-
-    // === Errors ===
-
-    #[allow(unused_const)]
-    /// Error code for minting more tokens than allowed
-    const EMintLimitReached: u64 = 0;
+    use blhnsuicntrtctkn::schedule::{Self};
+    use blhnsuicntrtctkn::treasury::{Self, Treasury};
+    use sui::clock::{Clock};
+    use sui::coin::{Self};
 
     // === Constants ===
-
-    #[allow(unused_const)]
-    /// Maximum supply of CHIRP tokens
-    const MaximumSupply: u64 = 3000000000000000000u64;
-
     /// Decimals of CHIRP tokens
-    const CoinDecimals: u8 = 10;
-
-    /// Coin symbol in favor of ISO 4217
-    const CoinSymbol: vector<u8> = b"CHIRP";
-
-    /// Coin human readable name
-    const CoinName: vector<u8> = b"Chirp Token";
-
+    const COIN_DECIMALS: u8 = 10;
     /// Coin human readable description
-    const CoinDescription: vector<u8> = b"Chirp token description";
+    const COIN_DESCRIPTION: vector<u8> = b"Chirp token description";
+    /// Coin human readable name
+    const COIN_NAME: vector<u8> = b"Chirp Token";
+    /// Coin symbol in favor of ISO 4217
+    const COIN_SYMBOL: vector<u8> = b"CHIRP";
 
     // === Structs ===
-
     /// The one-time witness struct for the module
     public struct CHIRP has drop {}
 
     // === Functions ===
-
+    /// Creates the CHIRP token and initializes the minting schedule
     fun init(otw: CHIRP, ctx: &mut TxContext) {
-        let (mintcap, metadata) = coin::create_currency(
+        let (coin_treasury_cap, metadata) = coin::create_currency(
             otw,
-            CoinDecimals,
-            CoinSymbol,
-            CoinName,
-            CoinDescription, 
+            COIN_DECIMALS,
+            COIN_SYMBOL,
+            COIN_NAME,
+            COIN_DESCRIPTION,
             option::none(), // No icon
             ctx,
         );
         transfer::public_freeze_object(metadata);
-        transfer::public_transfer(mintcap, tx_context::sender(ctx));
+        let admin_cap = treasury::create(coin_treasury_cap, schedule::default(), ctx);
+        transfer::public_transfer(admin_cap, ctx.sender());
     }
 
     /// Mint new CHIRP coins according to the predefined schedule
-    public entry fun mint(_: &mut TreasuryCap<CHIRP>, _ctx: &mut TxContext) {
-
+    public entry fun mint(treasury: &mut Treasury<CHIRP>, clock: &Clock, ctx: &mut TxContext) {
+        treasury::mint(treasury, clock, ctx);
     }
 
+    #[test_only]
+    public fun init_for_testing(ctx: &mut TxContext) {
+        init(CHIRP{}, ctx)
+    }
 
-    #[test_only] use std::string;
-    #[test_only] use sui::test_scenario;
-    #[test_only] use sui::test_utils;
-    #[test_only] const PUBLISHER: address = @0xA;
+    #[test_only] public fun coin_decimals(): u8 { COIN_DECIMALS }
+    #[test_only] public fun coin_description(): vector<u8> { COIN_DESCRIPTION }
+    #[test_only] public fun coin_name(): vector<u8> { COIN_NAME }
+    #[test_only] public fun coin_symbol(): vector<u8> { COIN_SYMBOL }
+}
+
+#[test_only]
+module blhnsuicntrtctkn::chirp_tests {
+    use blhnsuicntrtctkn::chirp::{Self, CHIRP};
+    use std::string;
+    use sui::coin::{Self};
+    use sui::test_scenario;
+    use sui::test_utils;
+
+    const PUBLISHER: address = @0xA;
 
     #[test]
-    fun test_init() {
+    fun test_currency_creation() {
         let mut scenario = test_scenario::begin(PUBLISHER);
         {
-            init(CHIRP{}, test_scenario::ctx(&mut scenario));
+            chirp::init_for_testing(scenario.ctx()); 
         };
         test_scenario::next_tx(&mut scenario, PUBLISHER);
         {
             let metadata = test_scenario::take_immutable<coin::CoinMetadata<CHIRP>>(&scenario);
-            let mintcap = test_scenario::take_from_sender<TreasuryCap<CHIRP>>(&scenario);
-            test_utils::assert_eq(coin::get_decimals(&metadata), CoinDecimals);
-            test_utils::assert_eq(string::index_of(&string::from_ascii(coin::get_symbol(&metadata)), &string::utf8(CoinSymbol)), 0);
-            test_utils::assert_eq(string::index_of(&coin::get_name(&metadata), &string::utf8(CoinName)), 0);
-            test_utils::assert_eq(string::index_of(&coin::get_description(&metadata), &string::utf8(CoinDescription)), 0);
+            test_utils::assert_eq(coin::get_decimals(&metadata), chirp::coin_decimals());
+            test_utils::assert_eq(string::index_of(&string::from_ascii(metadata.get_symbol()), &string::utf8(chirp::coin_symbol())), 0);
+            test_utils::assert_eq(string::index_of(&metadata.get_name(), &string::utf8(chirp::coin_name())), 0);
+            test_utils::assert_eq(string::index_of(&metadata.get_description(), &string::utf8(chirp::coin_description())), 0);
             test_scenario::return_immutable<coin::CoinMetadata<CHIRP>>(metadata);
-            test_scenario::return_to_address<TreasuryCap<CHIRP>>(PUBLISHER, mintcap);
         };
         test_scenario::end(scenario);
     }
