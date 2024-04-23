@@ -16,7 +16,7 @@ module blhnsuicntrtctkn::schedule {
     /// Returns the default minting schedule token
     public(package) fun default<T>(): vector<ScheduleEntry<T>> {
         vector[
-            treasury::create_entry(option::none(), 1, 172800000, vector[INVESTORS_POOL, TOKEN_TREASURY_POOL, LIQUIDITY_POOL], vector[9_600_000_0000000000, 4_500_000_0000000000, 15_000_000_0000000000]),
+            treasury::create_entry(vector[INVESTORS_POOL, TOKEN_TREASURY_POOL, LIQUIDITY_POOL], vector[9_600_000_0000000000, 4_500_000_0000000000, 15_000_000_0000000000], 1, 172800000, option::none()),
             // TODO: other entries
         ]
     }
