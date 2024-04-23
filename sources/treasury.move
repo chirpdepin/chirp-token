@@ -9,6 +9,8 @@ module blhnsuicntrtctkn::treasury {
     const EMintLimitReached: u64 = 0;
     /// Error code for invalid schedule entry
     const EInvalidScheduleEntry: u64 = 1;
+    /// Error code for inpropriate time to mint
+    const EInappropriateTimeToMint: u64 = 2;
 
     // === Structs ===
     /// The schedule's admin capability that allows to modify the schedule.
@@ -19,8 +21,9 @@ module blhnsuicntrtctkn::treasury {
 
     /// The schedule entry.
     public struct ScheduleEntry<phantom T> has store, drop {
-        /// The start time of the first epoch in milliseconds.
-        start_time_ms: std::option::Option<u64>,
+        /// The time shift relative to the end of the preceding entry or
+        /// initial minting time.
+        timeshift_ms: std::option::Option<u64>,
         /// The number of epochs to mint.
         number_of_epochs: u64,
         /// The current minting epoch number.
@@ -43,11 +46,9 @@ module blhnsuicntrtctkn::treasury {
         cap: TreasuryCap<T>,
         /// The current schedule entry
         current_entry: u64,
-        /// The start time of the first mint in milliseconds.
-        start_time_ms: std::option::Option<u64>,
     }
 
-    // === Functions ===
+    // === Public package functions ===
     /// Creates a new treasury with minting schedule.
     public(package) fun create<T>(cap: TreasuryCap<T>, schedule: vector<ScheduleEntry<T>>, ctx: &mut TxContext): ScheduleAdminCap {
         transfer::public_share_object(Treasury {
@@ -55,7 +56,6 @@ module blhnsuicntrtctkn::treasury {
             schedule: schedule,
             cap: cap,
             current_entry: 0,
-            start_time_ms: option::none(),
         });
         ScheduleAdminCap {
             id: object::new(ctx),
@@ -64,7 +64,7 @@ module blhnsuicntrtctkn::treasury {
 
     /// Creates a new schedule entry.
     public(package) fun create_entry<T>(
-        start_time_ms: Option<u64>,
+        timeshift_ms: Option<u64>,
         number_of_epochs: u64,
         epoch_duration_ms: u64,
         pools: vector<address>,
@@ -74,7 +74,7 @@ module blhnsuicntrtctkn::treasury {
         assert!(number_of_epochs > 0, EInvalidScheduleEntry);
         assert!(epoch_duration_ms > 0, EInvalidScheduleEntry);
         ScheduleEntry {
-            start_time_ms: start_time_ms,
+            timeshift_ms: timeshift_ms,
             number_of_epochs: number_of_epochs,
             current_epoch: 0,
             epoch_duration_ms: epoch_duration_ms,
@@ -84,27 +84,45 @@ module blhnsuicntrtctkn::treasury {
     }
 
     /// Mint coins according to the schedule.
-    public(package) fun mint<T>(treasury: &mut Treasury<T>, _clock: &Clock, ctx: &mut TxContext) {
+    public(package) fun mint<T>(treasury: &mut Treasury<T>, clock: &Clock, ctx: &mut TxContext) {
         assert!(treasury.schedule.length() > 0, EMintLimitReached);
         assert!(treasury.current_entry < treasury.schedule.length(), EMintLimitReached);
-        let entry = treasury.schedule.borrow_mut(treasury.current_entry);
+        let next_stage_ms = mint_entry(&mut treasury.schedule[treasury.current_entry], &mut treasury.cap, clock, ctx);
+        if (next_stage_ms.is_some()) {
+            treasury.current_entry = treasury.current_entry + 1;
+            if (treasury.current_entry < treasury.schedule.length()) {
+                let next_entry = &mut treasury.schedule[treasury.current_entry];
+                next_entry.timeshift_ms = option::some(next_stage_ms.get_with_default(0) + next_entry.timeshift_ms.get_with_default(0));
+            }
+        }
+    }
+
+    // === Internal functions ===
+
+    /// Mint coins following the specified parameters and return the time for the next stage after all epochs are minted.
+    fun mint_entry<T>(entry: &mut ScheduleEntry<T>, cap: &mut TreasuryCap<T>, clock: &Clock, ctx: &mut TxContext): Option<u64> {
+        if (entry.timeshift_ms.is_none()) {
+            entry.timeshift_ms = option::some(clock.timestamp_ms());
+        };
+        assert!(clock.timestamp_ms() >= entry.timeshift_ms.get_with_default(0) + entry.current_epoch * entry.epoch_duration_ms, EInappropriateTimeToMint);
         let mut k = 0;
         while (k < entry.pools.length()) {
             let pool = entry.pools[k];
             let amount = entry.amounts[k];
-            coin::mint_and_transfer(&mut treasury.cap, amount, pool, ctx);
+            coin::mint_and_transfer(cap, amount, pool, ctx);
             k = k + 1;
         };
         entry.current_epoch = entry.current_epoch + 1;
         if (entry.current_epoch == entry.number_of_epochs) {
-            treasury.current_entry = treasury.current_entry + 1;
-        }
+            return option::some(entry.timeshift_ms.get_with_default(0) + entry.number_of_epochs * entry.epoch_duration_ms)
+        };
+        return option::none()
     }
 }
 
 #[test_only]
 module blhnsuicntrtctkn::treasury_tests {
-    use blhnsuicntrtctkn::treasury::{Self, Treasury, ScheduleEntry, EInvalidScheduleEntry, EMintLimitReached};
+    use blhnsuicntrtctkn::treasury::{Self, Treasury, ScheduleEntry, EInvalidScheduleEntry, EMintLimitReached, EInappropriateTimeToMint};
     use sui::clock::{Self, Clock};
     use sui::coin::{Self};
     use sui::test_scenario::{Self, Scenario};
@@ -149,9 +167,9 @@ module blhnsuicntrtctkn::treasury_tests {
         let mut scenario = setup_scenario(vector[]);
         test_scenario::next_tx(&mut scenario, PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario); 
+            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            treasury::mint(&mut treasury, &clock, scenario.ctx());
+            treasury.mint(&clock, scenario.ctx());
             test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
             test_scenario::return_shared<Clock>(clock);
         };
@@ -165,9 +183,9 @@ module blhnsuicntrtctkn::treasury_tests {
         ]);
         test_scenario::next_tx(&mut scenario, PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario); 
+            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
-            treasury::mint(&mut treasury, &clock, scenario.ctx());
+            treasury.mint(&clock, scenario.ctx());
             test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
             test_scenario::return_shared<Clock>(clock);
         };
@@ -175,6 +193,27 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             assert_eq_chirp_coin(TEST_POOL1, 100, &scenario);
             assert_eq_chirp_coin(TEST_POOL2, 200, &scenario);
+        };
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = EInappropriateTimeToMint)]
+    fun test_mint_fails_when_minting_time_has_not_come_yet() {
+        let mut scenario = setup_scenario(vector[
+            treasury::create_entry(option::none(), 2, 1000, vector[TEST_POOL1], vector[100]),
+        ]);
+        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        {
+            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+
+            treasury.mint(&clock, scenario.ctx());
+            // The minting should fail because the minting time has not come yet.
+            treasury.mint(&clock, scenario.ctx());
+
+            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
+            test_scenario::return_shared<Clock>(clock);
         };
         test_scenario::end(scenario);
     }
@@ -188,14 +227,14 @@ module blhnsuicntrtctkn::treasury_tests {
         ]);
         test_scenario::next_tx(&mut scenario, PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario); 
+            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
             let mut clock = test_scenario::take_shared<Clock>(&scenario);
 
             // The minting for the first epoch should succeed.
-            treasury::mint(&mut treasury, &clock, scenario.ctx());
-            clock::increment_for_testing(&mut clock, 1000);
+            treasury.mint(&clock, scenario.ctx());
+            clock.increment_for_testing(1000);
             // The minting for the second epoch should succeed.
-            treasury::mint(&mut treasury, &clock, scenario.ctx());
+            treasury.mint(&clock, scenario.ctx());
 
             test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
             test_scenario::return_shared<Clock>(clock);
@@ -206,17 +245,93 @@ module blhnsuicntrtctkn::treasury_tests {
         };
         test_scenario::next_tx(&mut scenario, PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario); 
+            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
             let clock = test_scenario::take_shared<Clock>(&scenario);
 
             // The minting should fail because the schedule has ended.
-            treasury::mint(&mut treasury, &clock, scenario.ctx());
+            treasury.mint(&clock, scenario.ctx());
 
             test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
             test_scenario::return_shared<Clock>(clock);
         };
         test_scenario::end(scenario);
     }
+
+    #[test]
+    // The next stage must be initiated after the minting stage is complete
+    fun test_mint_starts_then_next_stage() {
+        let mut scenario = setup_scenario(vector[
+            treasury::create_entry(option::none(), 1, 1000, vector[TEST_POOL1], vector[100]),
+            treasury::create_entry(option::none(), 1, 1000, vector[TEST_POOL2], vector[200]),
+        ]);
+        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        {
+            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
+            let mut clock = test_scenario::take_shared<Clock>(&scenario);
+            // The minting for the first epoch of first stage should succeed.
+            treasury.mint(&clock, scenario.ctx());
+
+            clock.increment_for_testing(1000);
+
+            // The minting for the first epoch of the second stage should succeed.
+            treasury.mint(&clock, scenario.ctx());
+            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
+            test_scenario::return_shared<Clock>(clock);
+        };
+        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        {
+            assert_eq_chirp_coin(TEST_POOL1, 100, &scenario);
+            assert_eq_chirp_coin(TEST_POOL2, 200, &scenario);
+        };
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = EInappropriateTimeToMint)]
+    // The next stage starts after duration of previous stage
+    fun test_mint_fails_when_minting_time_has_not_come_yet_for_next_stage() {
+        let mut scenario = setup_scenario(vector[
+            treasury::create_entry(option::none(), 1, 1000, vector[TEST_POOL1], vector[100]),
+            treasury::create_entry(option::none(), 1, 1000, vector[TEST_POOL2], vector[200]),
+        ]);
+        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        {
+            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            treasury.mint(&clock, scenario.ctx());
+            // Minting must not succeed until at least 1000 ms have passed since the last epoch of the initial stage.
+            treasury.mint(&clock, scenario.ctx());
+            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
+            test_scenario::return_shared<Clock>(clock);
+        };
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = EInappropriateTimeToMint)]
+    // The next stage might have the optional time shift
+    fun test_mint_fails_when_minting_time_has_not_come_yet_for_next_stage_with_time_shift() {
+        let mut scenario = setup_scenario(vector[
+            treasury::create_entry(option::none(), 1, 1000, vector[TEST_POOL1], vector[100]),
+            // The second stage starts 2000 ms after the end of the first stage.
+            treasury::create_entry(option::some(2000), 1, 1000, vector[TEST_POOL2], vector[200]),
+        ]);
+        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        {
+            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
+            let mut clock = test_scenario::take_shared<Clock>(&scenario);
+            treasury.mint(&clock, scenario.ctx());
+
+            clock.increment_for_testing(1000);
+
+            // Minting must not succeed because the next stage has additional time shift.
+            treasury.mint(&clock, scenario.ctx());
+            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
+            test_scenario::return_shared<Clock>(clock);
+        };
+        test_scenario::end(scenario);
+    }
+
 
     /// Sets up a scenario with the given minting schedule.
     fun setup_scenario(schedule: vector<ScheduleEntry<TREASURY_TESTS>>): Scenario {
