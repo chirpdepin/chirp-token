@@ -173,22 +173,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::treasury(), cents(4_500_000), &scenario);
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
-        {
-            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(&scenario);
-            let mut clock = test_scenario::take_shared<Clock>(&scenario);
-
-            // Stage 1 has 45 epochs, each 2 days long
-            let mut number_of_epochs = 45;
-            while (number_of_epochs > 0) {
-                chirp::mint(&mut treasury, &clock, scenario.ctx());
-                clock.increment_for_testing(172800000);
-                number_of_epochs = number_of_epochs - 1;
-            };
-
-            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
-        };
+        batch_mint(45, &mut scenario); // stage 1
         test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(2_701_305), &scenario);
@@ -199,22 +184,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::treasury(), cents(6_525_945), &scenario);
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
-        {
-            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(&scenario);
-            let mut clock = test_scenario::take_shared<Clock>(&scenario);
-
-            // Stage 2 has 45 epochs, each 2 days long
-            let mut number_of_epochs = 45;
-            while (number_of_epochs > 0) {
-                chirp::mint(&mut treasury, &clock, scenario.ctx());
-                clock.increment_for_testing(172800000);
-                number_of_epochs = number_of_epochs - 1;
-            };
-
-            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
-        };
+        batch_mint(45, &mut scenario); // stage 2
         test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(5_372_595), &scenario);
@@ -225,22 +195,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::treasury(), cents(8_552_250), &scenario);
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
-        {
-            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(&scenario);
-            let mut clock = test_scenario::take_shared<Clock>(&scenario);
-
-            // Stage 3 has 90 epochs, each 2 days long
-            let mut number_of_epochs = 90;
-            while (number_of_epochs > 0) {
-                chirp::mint(&mut treasury, &clock, scenario.ctx());
-                clock.increment_for_testing(172800000);
-                number_of_epochs = number_of_epochs - 1;
-            };
-
-            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
-        };
+        batch_mint(90, &mut scenario); // stage 3
         test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(10_593_675), &scenario);
@@ -251,22 +206,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::treasury(), cents(12_603_510), &scenario);
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
-        {
-            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(&scenario);
-            let mut clock = test_scenario::take_shared<Clock>(&scenario);
-
-            // Stage 4 has 90 epochs, each 2 days long
-            let mut number_of_epochs = 90;
-            while (number_of_epochs > 0) {
-                chirp::mint(&mut treasury, &clock, scenario.ctx());
-                clock.increment_for_testing(172800000);
-                number_of_epochs = number_of_epochs - 1;
-            };
-
-            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
-        };
+        batch_mint(90, &mut scenario); // stage 4
         test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(15_691_185), &scenario);
@@ -277,22 +217,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::treasury(), cents(16_654_050), &scenario);
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
-        {
-            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(&scenario);
-            let mut clock = test_scenario::take_shared<Clock>(&scenario);
-
-            // Stage 5 has 135 epochs, each 2 days long
-            let mut number_of_epochs = 135;
-            while (number_of_epochs > 0) {
-                chirp::mint(&mut treasury, &clock, scenario.ctx());
-                clock.increment_for_testing(172800000);
-                number_of_epochs = number_of_epochs - 1;
-            };
-
-            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
-        };
+        batch_mint(135, &mut scenario); // stage 5
         test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(23_163_570), &scenario);
@@ -303,22 +228,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::treasury(), cents(22_731_210), &scenario);
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
-        {
-            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(&scenario);
-            let mut clock = test_scenario::take_shared<Clock>(&scenario);
-
-            // Stage 6 has 135 epochs, each 2 days long
-            let mut number_of_epochs = 135;
-            while (number_of_epochs > 0) {
-                chirp::mint(&mut treasury, &clock, scenario.ctx());
-                clock.increment_for_testing(172800000);
-                number_of_epochs = number_of_epochs - 1;
-            };
-
-            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
-        };
+        batch_mint(135, &mut scenario); // stage 6
         test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(30_452_355), &scenario);
@@ -329,12 +239,130 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::treasury(), cents(28_808_235), &scenario);
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
+        batch_mint(135, &mut scenario); // stage 7
+        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        {
+            assert_eq_chirp_coin(schedule::keepers(), cents(37_561_995), &scenario);
+            assert_eq_chirp_coin(schedule::keepers_growth(), cents(22_638_420), &scenario);
+            assert_eq_chirp_coin(schedule::investors(), cents(48_004_305), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_advisors(), cents(11_992_005), &scenario);
+            assert_eq_chirp_coin(schedule::chirp_team(), cents(45_003_420), &scenario);
+            assert_eq_chirp_coin(schedule::treasury(), cents(34_880_805), &scenario);
+            assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
+        };
+        batch_mint(135, &mut scenario); // stage 8
+        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        {
+            assert_eq_chirp_coin(schedule::keepers(), cents(44_492_220), &scenario);
+            assert_eq_chirp_coin(schedule::keepers_growth(), cents(25_655_670), &scenario);
+            assert_eq_chirp_coin(schedule::investors(), cents(48_004_305), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_advisors(), cents(11_992_005), &scenario);
+            assert_eq_chirp_coin(schedule::chirp_team(), cents(45_003_420), &scenario);
+            assert_eq_chirp_coin(schedule::treasury(), cents(40_959_315), &scenario);
+            assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
+        };
+        batch_mint(135, &mut scenario); // stage 9
+        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        {
+            assert_eq_chirp_coin(schedule::keepers(), cents(51_243_165), &scenario);
+            assert_eq_chirp_coin(schedule::keepers_growth(), cents(28_580_445), &scenario);
+            assert_eq_chirp_coin(schedule::investors(), cents(48_004_305), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_advisors(), cents(11_992_005), &scenario);
+            assert_eq_chirp_coin(schedule::chirp_team(), cents(45_003_420), &scenario);
+            assert_eq_chirp_coin(schedule::treasury(), cents(45_006_615), &scenario);
+            assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
+        };
+        batch_mint(135, &mut scenario); // stage 10
+        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        {
+            assert_eq_chirp_coin(schedule::keepers(), cents(57_814_965), &scenario);
+            assert_eq_chirp_coin(schedule::keepers_growth(), cents(31_417_470), &scenario);
+            assert_eq_chirp_coin(schedule::investors(), cents(48_004_305), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_advisors(), cents(11_992_005), &scenario);
+            assert_eq_chirp_coin(schedule::chirp_team(), cents(45_003_420), &scenario);
+            assert_eq_chirp_coin(schedule::treasury(), cents(45_006_615), &scenario);
+            assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
+        };
+        batch_mint(135, &mut scenario); // stage 11
+        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        {
+            assert_eq_chirp_coin(schedule::keepers(), cents(64_201_005), &scenario);
+            assert_eq_chirp_coin(schedule::keepers_growth(), cents(34_163_235), &scenario);
+            assert_eq_chirp_coin(schedule::investors(), cents(48_004_305), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_advisors(), cents(11_992_005), &scenario);
+            assert_eq_chirp_coin(schedule::chirp_team(), cents(45_003_420), &scenario);
+            assert_eq_chirp_coin(schedule::treasury(), cents(45_006_615), &scenario);
+            assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
+        };
+        batch_mint(135, &mut scenario); // stage 12
+        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        {
+            assert_eq_chirp_coin(schedule::keepers(), cents(70_409_790), &scenario);
+            assert_eq_chirp_coin(schedule::keepers_growth(), cents(36_821_385), &scenario);
+            assert_eq_chirp_coin(schedule::investors(), cents(48_004_305), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_advisors(), cents(11_992_005), &scenario);
+            assert_eq_chirp_coin(schedule::chirp_team(), cents(45_003_420), &scenario);
+            assert_eq_chirp_coin(schedule::treasury(), cents(45_006_615), &scenario);
+            assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
+        };
+        batch_mint(135, &mut scenario); // stage 13
+        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        {
+            assert_eq_chirp_coin(schedule::keepers(), cents(76_442_805), &scenario);
+            assert_eq_chirp_coin(schedule::keepers_growth(), cents(39_388_140), &scenario);
+            assert_eq_chirp_coin(schedule::investors(), cents(48_004_305), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_advisors(), cents(11_992_005), &scenario);
+            assert_eq_chirp_coin(schedule::chirp_team(), cents(45_003_420), &scenario);
+            assert_eq_chirp_coin(schedule::treasury(), cents(45_006_615), &scenario);
+            assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
+        };
+        batch_mint(135, &mut scenario); // stage 14
+        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        {
+            assert_eq_chirp_coin(schedule::keepers(), cents(82_291_545), &scenario);
+            assert_eq_chirp_coin(schedule::keepers_growth(), cents(41_861_340), &scenario);
+            assert_eq_chirp_coin(schedule::investors(), cents(48_004_305), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_advisors(), cents(11_992_005), &scenario);
+            assert_eq_chirp_coin(schedule::chirp_team(), cents(45_003_420), &scenario);
+            assert_eq_chirp_coin(schedule::treasury(), cents(45_006_615), &scenario);
+            assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
+        };
+        batch_mint(180, &mut scenario); // stage 15
+        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        {
+            assert_eq_chirp_coin(schedule::keepers(), cents(90_000_585), &scenario);
+            assert_eq_chirp_coin(schedule::keepers_growth(), cents(45_009_360), &scenario);
+            assert_eq_chirp_coin(schedule::investors(), cents(48_004_305), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_advisors(), cents(11_992_005), &scenario);
+            assert_eq_chirp_coin(schedule::chirp_team(), cents(45_003_420), &scenario);
+            assert_eq_chirp_coin(schedule::treasury(), cents(45_006_615), &scenario);
+            assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
+        };
         test_scenario::end(scenario);
+
     }
 
     /// Asserts that the value of the CHIRP coin held by the owner is equal to the expected value.
     fun assert_eq_chirp_coin(owner: address, expected_value: u64, scenario: &test_scenario::Scenario) {
         test_utils::assert_eq(total_coins(owner, scenario), expected_value);
+    }
+
+    /// Mints the specified number of epochs of CHIRP coins.
+    fun batch_mint(mut number_of_epochs: u64, scenario: &mut test_scenario::Scenario) {
+        test_scenario::next_tx(scenario, RANDOM_PERSON);
+        {
+            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(scenario);
+            let mut clock = test_scenario::take_shared<Clock>(scenario);
+
+            while (number_of_epochs > 0) {
+                chirp::mint(&mut treasury, &clock, scenario.ctx());
+                clock.increment_for_testing(172800000);
+                number_of_epochs = number_of_epochs - 1;
+            };
+
+            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
+            test_scenario::return_shared<Clock>(clock);
+        };
     }
 
     /// Returns the total value of the test coins held by the owner.
