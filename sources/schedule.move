@@ -150,20 +150,20 @@ module blhnsuicntrtctkn::schedule_tests {
             chirp::init_for_testing(scenario.ctx());
             clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
         };
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(&scenario);
-            let mut clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let mut clock: Clock = scenario.take_shared();
 
             // First mint might happen immediately
             chirp::mint(&mut treasury, &clock, scenario.ctx());
             // The first mint's epoch duration is 1 millisecond
             clock.increment_for_testing(1);
 
-            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(0), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(0), &scenario);
@@ -174,7 +174,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(45, &mut scenario); // stage 1
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(2_701_305), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(2_701_260), &scenario);
@@ -185,7 +185,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(45, &mut scenario); // stage 2
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(5_372_595), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(5_400_360), &scenario);
@@ -196,7 +196,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(90, &mut scenario); // stage 3
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(10_593_675), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(10_802_070), &scenario);
@@ -207,7 +207,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(90, &mut scenario); // stage 4
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(15_691_185), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(13_053_420), &scenario);
@@ -218,7 +218,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(135, &mut scenario); // stage 5
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(23_163_570), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(16_340_535), &scenario);
@@ -229,7 +229,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(135, &mut scenario); // stage 6
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(30_452_355), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(19_534_365), &scenario);
@@ -240,7 +240,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(135, &mut scenario); // stage 7
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(37_561_995), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(22_638_420), &scenario);
@@ -251,7 +251,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(135, &mut scenario); // stage 8
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(44_492_220), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(25_655_670), &scenario);
@@ -262,7 +262,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(135, &mut scenario); // stage 9
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(51_243_165), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(28_580_445), &scenario);
@@ -273,7 +273,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(135, &mut scenario); // stage 10
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(57_814_965), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(31_417_470), &scenario);
@@ -284,7 +284,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(135, &mut scenario); // stage 11
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(64_201_005), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(34_163_235), &scenario);
@@ -295,7 +295,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(135, &mut scenario); // stage 12
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(70_409_790), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(36_821_385), &scenario);
@@ -306,7 +306,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(135, &mut scenario); // stage 13
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(76_442_805), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(39_388_140), &scenario);
@@ -317,7 +317,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(135, &mut scenario); // stage 14
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(82_291_545), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(41_861_340), &scenario);
@@ -328,7 +328,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
         batch_mint(180, &mut scenario); // stage 15
-        test_scenario::next_tx(&mut scenario, RANDOM_PERSON);
+        scenario.next_tx(RANDOM_PERSON);
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(90_000_585), &scenario);
             assert_eq_chirp_coin(schedule::keepers_growth(), cents(45_009_360), &scenario);
@@ -338,8 +338,7 @@ module blhnsuicntrtctkn::schedule_tests {
             assert_eq_chirp_coin(schedule::treasury(), cents(45_006_615), &scenario);
             assert_eq_chirp_coin(schedule::liquidity(), cents(15_000_000), &scenario);
         };
-        test_scenario::end(scenario);
-
+        scenario.end();
     }
 
     /// Asserts that the value of the CHIRP coin held by the owner is equal to the expected value.
@@ -351,8 +350,8 @@ module blhnsuicntrtctkn::schedule_tests {
     fun batch_mint(mut number_of_epochs: u64, scenario: &mut test_scenario::Scenario) {
         test_scenario::next_tx(scenario, RANDOM_PERSON);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(scenario);
-            let mut clock = test_scenario::take_shared<Clock>(scenario);
+            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let mut clock: Clock = scenario.take_shared();
 
             while (number_of_epochs > 0) {
                 chirp::mint(&mut treasury, &clock, scenario.ctx());
@@ -360,8 +359,8 @@ module blhnsuicntrtctkn::schedule_tests {
                 number_of_epochs = number_of_epochs - 1;
             };
 
-            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
     }
 

@@ -59,7 +59,11 @@ module blhnsuicntrtctkn::treasury {
 
     // === Public package functions ===
     /// Creates a new treasury with minting schedule.
-    public(package) fun create<T>(cap: TreasuryCap<T>, schedule: vector<ScheduleEntry<T>>, ctx: &mut TxContext): ScheduleAdminCap {
+    public(package) fun create<T>(
+        cap: TreasuryCap<T>,
+        schedule: vector<ScheduleEntry<T>>,
+        ctx: &mut TxContext,
+    ): ScheduleAdminCap {
         transfer::share_object(Treasury {
             id: object::new(ctx),
             schedule: schedule,
@@ -96,7 +100,11 @@ module blhnsuicntrtctkn::treasury {
     }
     
     /// Replaces the schedule entry at the specified index with the new entry.
-    public(package) fun set_entry<T>(treasury: &mut Treasury<T>, index: u64, entry: ScheduleEntry<T>) {
+    public(package) fun set_entry<T>(
+        treasury: &mut Treasury<T>,
+        index: u64,
+        entry: ScheduleEntry<T>,
+    ) {
         assert!(index < treasury.schedule.length(), EIndexOutOfRange);
         assert!(index >= treasury.current_entry, EIndexOutOfRange);
         let target_entry = &mut treasury.schedule[index];
@@ -107,7 +115,11 @@ module blhnsuicntrtctkn::treasury {
     }
 
     /// Inserts the schedule entry at the specified index.
-    public(package) fun insert_entry<T>(treasury: &mut Treasury<T>, index: u64, entry: ScheduleEntry<T>) {
+    public(package) fun insert_entry<T>(
+        treasury: &mut Treasury<T>,
+        index: u64,
+        entry: ScheduleEntry<T>,
+    ) {
         assert!(index <= treasury.schedule.length(), EIndexOutOfRange);
         assert!(treasury.current_entry == 0 || index > treasury.current_entry, EIndexOutOfRange);
         treasury.schedule.insert(entry, index);
@@ -124,24 +136,34 @@ module blhnsuicntrtctkn::treasury {
     public(package) fun mint<T>(treasury: &mut Treasury<T>, clock: &Clock, ctx: &mut TxContext) {
         assert!(treasury.schedule.length() > 0, EMintLimitReached);
         assert!(treasury.current_entry < treasury.schedule.length(), EMintLimitReached);
-        let next_stage_ms = mint_entry(&mut treasury.schedule[treasury.current_entry], &mut treasury.cap, clock, ctx);
+        let entry = &mut treasury.schedule[treasury.current_entry];
+        let next_stage_ms = mint_entry(entry, &mut treasury.cap, clock, ctx);
         if (next_stage_ms.is_some()) {
             treasury.current_entry = treasury.current_entry + 1;
             if (treasury.current_entry < treasury.schedule.length()) {
                 let next_entry = &mut treasury.schedule[treasury.current_entry];
-                next_entry.start_time_ms = option::some(next_stage_ms.get_with_default(0) + next_entry.stage.timeshift_ms.get_with_default(0));
+                let next_start_time_ms = next_stage_ms.get_with_default(0);
+                let next_timeshift_ms = next_entry.stage.timeshift_ms.get_with_default(0);
+                next_entry.start_time_ms = option::some(next_start_time_ms + next_timeshift_ms);
             }
         }
     }
 
     // === Internal functions ===
 
-    /// Mint coins following the specified parameters and return the time for the next stage after all epochs are minted.
-    fun mint_entry<T>(entry: &mut ScheduleEntry<T>, cap: &mut TreasuryCap<T>, clock: &Clock, ctx: &mut TxContext): Option<u64> {
+    /// Mint coins following the specified parameters and return the time for
+    /// the next stage after all epochs are minted.
+    fun mint_entry<T>(
+        entry: &mut ScheduleEntry<T>,
+        cap: &mut TreasuryCap<T>,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ): Option<u64> {
         if (entry.start_time_ms.is_none()) {
             entry.start_time_ms = option::some(clock.timestamp_ms());
         };
-        assert!(clock.timestamp_ms() >= entry.start_time_ms.get_with_default(0) + entry.stage.timeshift_ms.get_with_default(0) + entry.current_epoch * entry.stage.epoch_duration_ms, EInappropriateTimeToMint);
+        let mint_time = get_entry_mint_time(entry);
+        assert!(clock.timestamp_ms() >= mint_time, EInappropriateTimeToMint);
         let mut k = 0;
         while (k < entry.stage.pools.length()) {
             let pool = entry.stage.pools[k];
@@ -151,15 +173,31 @@ module blhnsuicntrtctkn::treasury {
         };
         entry.current_epoch = entry.current_epoch + 1;
         if (entry.current_epoch == entry.stage.number_of_epochs) {
-            return option::some(entry.start_time_ms.get_with_default(0) + entry.stage.timeshift_ms.get_with_default(0) + entry.stage.number_of_epochs * entry.stage.epoch_duration_ms)
+            return option::some(get_entry_mint_time(entry))
         };
         return option::none()
    }
+
+    /// Returns the mint time of the entry
+    fun get_entry_mint_time<T>(entry: &ScheduleEntry<T>): u64 {
+        let start_time = entry.start_time_ms.get_with_default(0);
+        let time_shift = entry.stage.timeshift_ms.get_with_default(0);
+        let time_elapsed_ms = entry.current_epoch * entry.stage.epoch_duration_ms;
+        start_time + time_shift + time_elapsed_ms
+    }
 }
 
 #[test_only]
 module blhnsuicntrtctkn::treasury_tests {
-    use blhnsuicntrtctkn::treasury::{Self, Treasury, ScheduleEntry, EInvalidScheduleEntry, EIndexOutOfRange, EMintLimitReached, EInappropriateTimeToMint};
+    use blhnsuicntrtctkn::treasury::{
+        ScheduleEntry,
+        Self,
+        Treasury, 
+        EInappropriateTimeToMint,
+        EIndexOutOfRange,
+        EInvalidScheduleEntry,
+        EMintLimitReached,
+    };
     use sui::clock::{Self, Clock};
     use sui::coin::{Self};
     use sui::test_scenario::{Self, Scenario};
@@ -202,13 +240,13 @@ module blhnsuicntrtctkn::treasury_tests {
     #[expected_failure(abort_code = EIndexOutOfRange)]
     fun test_set_entry_fails_for_invalid_index() {
         let mut scenario = setup_scenario(vector[]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            treasury::set_entry(&mut treasury, 0, treasury::create_entry(vector[@0xBBB], vector[100], 10, 3600, option::none()));
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury)
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            treasury.set_entry(0, treasury::create_entry(vector[@0xBBB], vector[100], 10, 3600, option::none()));
+            test_scenario::return_shared(treasury);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -217,22 +255,22 @@ module blhnsuicntrtctkn::treasury_tests {
         let mut scenario = setup_scenario(vector[
             treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
             treasury.mint(&clock, scenario.ctx());
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             // Fails because the stage has already finished.
-            treasury::set_entry(&mut treasury, 0, treasury::create_entry(vector[TEST_POOL1], vector[100], 10, 3600, option::none()));
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury)
+            treasury.set_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[100], 10, 3600, option::none()));
+            test_scenario::return_shared(treasury);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -240,21 +278,21 @@ module blhnsuicntrtctkn::treasury_tests {
         let mut scenario = setup_scenario(vector[
             treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
-            treasury::set_entry(&mut treasury, 0, treasury::create_entry(vector[TEST_POOL1], vector[1337], 1, 3600, option::none()));
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
+            treasury.set_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[1337], 1, 3600, option::none()));
             // Should mint 3117 coins
             treasury.mint(&clock, scenario.ctx());
-            test_scenario::return_shared<Clock>(clock);
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury)
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
             assert_eq_chirp_coin(TEST_POOL1, 1337, &scenario);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -263,36 +301,36 @@ module blhnsuicntrtctkn::treasury_tests {
         let mut scenario = setup_scenario(vector[
             treasury::create_entry(vector[TEST_POOL1], vector[100], 2, 3600, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
             treasury.mint(&clock, scenario.ctx());
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             // Fails because the number of epochs is equal to the current epoch.
-            treasury::set_entry(&mut treasury, 0, treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()));
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
+            treasury.set_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()));
+            test_scenario::return_shared(treasury);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
     #[expected_failure(abort_code = EIndexOutOfRange)]
     fun test_insert_entry_fails_on_index_out_of_range() {
         let mut scenario = setup_scenario(vector[]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario:: take_shared<Treasury<TREASURY_TESTS>>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             // Fails because the index is out of range.
             treasury.insert_entry(1, treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()));
             test_scenario::return_shared(treasury);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -301,19 +339,19 @@ module blhnsuicntrtctkn::treasury_tests {
         let mut scenario = setup_scenario(vector[
             treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
             treasury.mint(&clock, scenario.ctx());
 
             // Fails because the index is before current stage
             treasury.insert_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()));
 
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -321,22 +359,22 @@ module blhnsuicntrtctkn::treasury_tests {
         let mut scenario = setup_scenario(vector[
             treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
             // Do not errors because the schedule was not started yet.
             treasury.insert_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[200], 1, 3600, option::none()));
             treasury.mint(&clock, scenario.ctx());
 
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
             assert_eq_chirp_coin(TEST_POOL1, 200, &scenario);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -344,48 +382,49 @@ module blhnsuicntrtctkn::treasury_tests {
         let mut scenario = setup_scenario(vector[
             treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
 
             // Do not errors because the index is at the end of the schedule.
             treasury.insert_entry(1, treasury::create_entry(vector[TEST_POOL1], vector[200], 1, 3600, option::none()));
             treasury.mint(&clock, scenario.ctx());
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
             assert_eq_chirp_coin(TEST_POOL1, 100, &scenario);
 
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let mut clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let mut clock: Clock = scenario.take_shared();
             clock.increment_for_testing(3600);
             treasury.mint(&clock, scenario.ctx());
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
             // The total amount of coins should be 100+200=300
             assert_eq_chirp_coin(TEST_POOL1, 300, &scenario);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
     #[expected_failure(abort_code = EIndexOutOfRange)]
     fun test_remove_entry_fails_on_index_out_of_range() {
         let mut scenario = setup_scenario(vector[]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             // Fails because the index is out of range.
             treasury.remove_entry(3117);
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
+            test_scenario::return_shared(treasury);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -394,18 +433,18 @@ module blhnsuicntrtctkn::treasury_tests {
         let mut scenario = setup_scenario(vector[
             treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
             treasury.mint(&clock, scenario.ctx());
             // Fails because the stage was already minted
             treasury.remove_entry(0);
 
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -414,29 +453,29 @@ module blhnsuicntrtctkn::treasury_tests {
             treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
             treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 3600, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             // Do not errors because the schedule was not started yet.
             treasury.remove_entry(0);
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
+            test_scenario::return_shared(treasury);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
     #[expected_failure(abort_code = EMintLimitReached)]
     fun test_mint_errors_on_empty_schedule() {
         let mut scenario = setup_scenario(vector[]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
             treasury.mint(&clock, scenario.ctx());
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -444,20 +483,20 @@ module blhnsuicntrtctkn::treasury_tests {
         let mut scenario = setup_scenario(vector[
             treasury::create_entry(vector[TEST_POOL1, TEST_POOL2], vector[100, 200], 1, 3600, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
             treasury.mint(&clock, scenario.ctx());
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
             assert_eq_chirp_coin(TEST_POOL1, 100, &scenario);
             assert_eq_chirp_coin(TEST_POOL2, 200, &scenario);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -466,19 +505,19 @@ module blhnsuicntrtctkn::treasury_tests {
         let mut scenario = setup_scenario(vector[
             treasury::create_entry(vector[TEST_POOL1], vector[100], 2, 1000, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
 
             treasury.mint(&clock, scenario.ctx());
             // The minting should fail because the minting time has not come yet.
             treasury.mint(&clock, scenario.ctx());
 
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -488,10 +527,10 @@ module blhnsuicntrtctkn::treasury_tests {
             // The schedule contains a single entry with two epochs, each lasting 1000ms
             treasury::create_entry(vector[TEST_POOL1], vector[100], 2, 1000, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let mut clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let mut clock: Clock = scenario.take_shared();
 
             // The minting for the first epoch should succeed.
             treasury.mint(&clock, scenario.ctx());
@@ -499,25 +538,25 @@ module blhnsuicntrtctkn::treasury_tests {
             // The minting for the second epoch should succeed.
             treasury.mint(&clock, scenario.ctx());
 
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
             assert_eq_chirp_coin(TEST_POOL1, 200, &scenario);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
 
             // The minting should fail because the schedule has ended.
             treasury.mint(&clock, scenario.ctx());
 
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -527,26 +566,24 @@ module blhnsuicntrtctkn::treasury_tests {
             treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 1000, option::none()),
             treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 1000, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let mut clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let mut clock: Clock = scenario.take_shared();
             // The minting for the first epoch of first stage should succeed.
             treasury.mint(&clock, scenario.ctx());
-
             clock.increment_for_testing(1000);
-
             // The minting for the first epoch of the second stage should succeed.
             treasury.mint(&clock, scenario.ctx());
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
             assert_eq_chirp_coin(TEST_POOL1, 100, &scenario);
             assert_eq_chirp_coin(TEST_POOL2, 200, &scenario);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -557,17 +594,17 @@ module blhnsuicntrtctkn::treasury_tests {
             treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 1000, option::none()),
             treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 1000, option::none()),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
             treasury.mint(&clock, scenario.ctx());
             // Minting must not succeed until at least 1000 ms have passed since the last epoch of the initial stage.
             treasury.mint(&clock, scenario.ctx());
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -579,20 +616,18 @@ module blhnsuicntrtctkn::treasury_tests {
             // The second stage starts 2000 ms after the end of the first stage.
             treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 1000, option::some(2000)),
         ]);
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
-            let mut clock = test_scenario::take_shared<Clock>(&scenario);
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let mut clock: Clock = scenario.take_shared();
             treasury.mint(&clock, scenario.ctx());
-
             clock.increment_for_testing(1000);
-
             // Minting must not succeed because the next stage has additional time shift.
             treasury.mint(&clock, scenario.ctx());
-            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
 

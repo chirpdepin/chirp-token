@@ -106,16 +106,16 @@ module blhnsuicntrtctkn::chirp_tests {
         {
             chirp::init_for_testing(scenario.ctx()); 
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
             let metadata = test_scenario::take_immutable<coin::CoinMetadata<CHIRP>>(&scenario);
             test_utils::assert_eq(coin::get_decimals(&metadata), chirp::coin_decimals());
             test_utils::assert_eq(string::index_of(&string::from_ascii(metadata.get_symbol()), &string::utf8(chirp::coin_symbol())), 0);
             test_utils::assert_eq(string::index_of(&metadata.get_name(), &string::utf8(chirp::coin_name())), 0);
             test_utils::assert_eq(string::index_of(&metadata.get_description(), &string::utf8(chirp::coin_description())), 0);
-            test_scenario::return_immutable<coin::CoinMetadata<CHIRP>>(metadata);
+            test_scenario::return_immutable(metadata);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -126,25 +126,25 @@ module blhnsuicntrtctkn::chirp_tests {
             chirp::init_for_testing(scenario.ctx());
             clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
-            let cap = test_scenario::take_from_sender<ScheduleAdminCap>(&scenario);
+            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
+            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
 
             // Setting zero mint params
             chirp::set_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, option::none());
-            treasury.mint(&clock, scenario.ctx());
+            chirp::mint(&mut treasury, &clock, scenario.ctx());
 
-            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
             test_scenario::return_to_sender(&scenario, cap);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
             assert_eq_chirp_coin(PUBLISHER, 1000, &scenario);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -155,25 +155,25 @@ module blhnsuicntrtctkn::chirp_tests {
             chirp::init_for_testing(scenario.ctx());
             clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
-            let cap = test_scenario::take_from_sender<ScheduleAdminCap>(&scenario);
+            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
+            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
 
             // inserting new zero mint stage
             chirp::insert_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, option::none());
-            treasury.mint(&clock, scenario.ctx());
+            chirp::mint(&mut treasury, &clock, scenario.ctx());
 
-            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
             test_scenario::return_to_sender(&scenario, cap);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
             assert_eq_chirp_coin(PUBLISHER, 1000, &scenario);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
@@ -184,11 +184,11 @@ module blhnsuicntrtctkn::chirp_tests {
             chirp::init_for_testing(scenario.ctx());
             clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
-            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(&scenario);
-            let clock = test_scenario::take_shared<Clock>(&scenario);
-            let cap = test_scenario::take_from_sender<ScheduleAdminCap>(&scenario);
+            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
+            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
 
             chirp::insert_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, option::none());
             chirp::insert_entry(&cap, &mut treasury, 1, vector[PUBLISHER], vector[3117], 1, 1000, option::none());
@@ -196,17 +196,17 @@ module blhnsuicntrtctkn::chirp_tests {
             chirp::remove_entry(&cap, &mut treasury, 0);
 
             // Should mint 3117 coins
-            treasury.mint(&clock, scenario.ctx());
+            chirp::mint(&mut treasury, &clock, scenario.ctx());
 
-            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
-            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
             test_scenario::return_to_sender(&scenario, cap);
         };
-        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        scenario.next_tx(PUBLISHER);
         {
             assert_eq_chirp_coin(PUBLISHER, 3117, &scenario);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     /// Asserts that the value of the CHIRP coin held by the owner is equal to the expected value.
