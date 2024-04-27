@@ -60,7 +60,7 @@ module blhnsuicntrtctkn::treasury {
     // === Public package functions ===
     /// Creates a new treasury with minting schedule.
     public(package) fun create<T>(cap: TreasuryCap<T>, schedule: vector<ScheduleEntry<T>>, ctx: &mut TxContext): ScheduleAdminCap {
-        transfer::public_share_object(Treasury {
+        transfer::share_object(Treasury {
             id: object::new(ctx),
             schedule: schedule,
             cap: cap,
