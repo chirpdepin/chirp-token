@@ -72,6 +72,11 @@ module blhnsuicntrtctkn::chirp {
         treasury.insert_entry(index, entry)
     }
 
+    /// Remove the schedule entry at the specified index
+    public entry fun remove_entry(_: &ScheduleAdminCap, treasury: &mut Treasury<CHIRP>, index: u64) {
+        treasury.remove_entry(index);
+    }
+
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext) {
         init(CHIRP{}, ctx)
@@ -167,6 +172,39 @@ module blhnsuicntrtctkn::chirp_tests {
         test_scenario::next_tx(&mut scenario, PUBLISHER);
         {
             assert_eq_chirp_coin(PUBLISHER, 1000, &scenario);
+        };
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun test_remove_entry_allows_to_remove_entries_from_default_schedule()
+    {
+        let mut scenario = test_scenario::begin(PUBLISHER);
+        {
+            chirp::init_for_testing(scenario.ctx());
+            clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
+        };
+        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        {
+            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let cap = test_scenario::take_from_sender<ScheduleAdminCap>(&scenario);
+
+            chirp::insert_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, option::none());
+            chirp::insert_entry(&cap, &mut treasury, 1, vector[PUBLISHER], vector[3117], 1, 1000, option::none());
+            // removing first mint stage
+            chirp::remove_entry(&cap, &mut treasury, 0);
+
+            // Should mint 3117 coins
+            treasury.mint(&clock, scenario.ctx());
+
+            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
+            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_to_sender(&scenario, cap);
+        };
+        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        {
+            assert_eq_chirp_coin(PUBLISHER, 3117, &scenario);
         };
         test_scenario::end(scenario);
     }

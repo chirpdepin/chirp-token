@@ -113,6 +113,13 @@ module blhnsuicntrtctkn::treasury {
         treasury.schedule.insert(entry, index);
     }
 
+    /// Removes the schedule entry at the specified index.
+    public(package) fun remove_entry<T>(treasury: &mut Treasury<T>, index: u64) {
+        assert!(index < treasury.schedule.length(), EIndexOutOfRange);
+        assert!(treasury.current_entry == 0 || index > treasury.current_entry, EIndexOutOfRange);
+        treasury.schedule.remove(index);
+    }
+
     /// Mint coins according to the schedule.
     public(package) fun mint<T>(treasury: &mut Treasury<T>, clock: &Clock, ctx: &mut TxContext) {
         assert!(treasury.schedule.length() > 0, EMintLimitReached);
@@ -363,6 +370,56 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             // The total amount of coins should be 100+200=300
             assert_eq_chirp_coin(TEST_POOL1, 300, &scenario);
+        };
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = EIndexOutOfRange)]
+    fun test_remove_entry_fails_on_index_out_of_range() {
+        let mut scenario = setup_scenario(vector[]);
+        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        {
+            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
+            // Fails because the index is out of range.
+            treasury.remove_entry(3117);
+            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
+        };
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = EIndexOutOfRange)]
+    fun test_remove_entry_fails_on_removing_past_or_current_entries() {
+        let mut scenario = setup_scenario(vector[
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
+        ]);
+        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        {
+            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            treasury.mint(&clock, scenario.ctx());
+            // Fails because the stage was already minted
+            treasury.remove_entry(0);
+
+            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
+            test_scenario::return_shared<Clock>(clock);
+        };
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun test_remove_entry_allows_to_remove_first_entry_if_the_schedule_was_not_started_yet() {
+        let mut scenario = setup_scenario(vector[
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
+            treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 3600, option::none()),
+        ]);
+        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        {
+            let mut treasury = test_scenario::take_shared<Treasury<TREASURY_TESTS>>(&scenario);
+            // Do not errors because the schedule was not started yet.
+            treasury.remove_entry(0);
+            test_scenario::return_shared<Treasury<TREASURY_TESTS>>(treasury);
         };
         test_scenario::end(scenario);
     }
