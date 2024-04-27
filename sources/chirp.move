@@ -57,6 +57,21 @@ module blhnsuicntrtctkn::chirp {
         treasury.set_entry(index, entry)
     }
 
+    /// Insert the schedule entry before the specified index
+    public entry fun insert_entry(
+        _: &ScheduleAdminCap,
+        treasury: &mut Treasury<CHIRP>, 
+        index: u64,
+        pools: vector<address>,
+        amounts: vector<u64>,
+        number_of_epochs: u64,
+        epoch_duration_ms: u64,
+        timeshift_ms: Option<u64>,
+    ) {
+        let entry = treasury::create_entry<CHIRP>(pools, amounts, number_of_epochs, epoch_duration_ms, timeshift_ms);
+        treasury.insert_entry(index, entry)
+    }
+
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext) {
         init(CHIRP{}, ctx)
@@ -113,7 +128,36 @@ module blhnsuicntrtctkn::chirp_tests {
             let cap = test_scenario::take_from_sender<ScheduleAdminCap>(&scenario);
 
             // Setting zero mint params
-            chirp::set_entry(&cap, & mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, option::none());
+            chirp::set_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, option::none());
+            treasury.mint(&clock, scenario.ctx());
+
+            test_scenario::return_shared<Treasury<CHIRP>>(treasury);
+            test_scenario::return_shared<Clock>(clock);
+            test_scenario::return_to_sender(&scenario, cap);
+        };
+        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        {
+            assert_eq_chirp_coin(PUBLISHER, 1000, &scenario);
+        };
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun test_insert_entry_allows_add_new_entries_into_default_schedule()
+    {
+        let mut scenario = test_scenario::begin(PUBLISHER);
+        {
+            chirp::init_for_testing(scenario.ctx());
+            clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
+        };
+        test_scenario::next_tx(&mut scenario, PUBLISHER);
+        {
+            let mut treasury = test_scenario::take_shared<Treasury<CHIRP>>(&scenario);
+            let clock = test_scenario::take_shared<Clock>(&scenario);
+            let cap = test_scenario::take_from_sender<ScheduleAdminCap>(&scenario);
+
+            // inserting new zero mint stage
+            chirp::insert_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, option::none());
             treasury.mint(&clock, scenario.ctx());
 
             test_scenario::return_shared<Treasury<CHIRP>>(treasury);
