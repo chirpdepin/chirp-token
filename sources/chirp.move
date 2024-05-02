@@ -6,6 +6,13 @@ module blhnsuicntrtctkn::chirp {
     use sui::clock::{Clock};
     use sui::coin::{Self};
 
+    // === Errors ===
+    #[allow(unused_const)] 
+    /// Migration is not an upgrade
+    const ENotUpgrade: u64 = 1;
+    /// Calling functions from the wrong package version
+    const EWrongVersion: u64 = 2;
+
     // === Constants ===
     /// Decimals of CHIRP tokens
     const COIN_DECIMALS: u8 = 10;
@@ -15,6 +22,9 @@ module blhnsuicntrtctkn::chirp {
     const COIN_NAME: vector<u8> = b"Chirp Token";
     /// Coin symbol in favor of ISO 4217
     const COIN_SYMBOL: vector<u8> = b"CHIRP";
+
+    /// The version of the package
+    const PACKAGE_VERSION: u64 = 1;
 
     // === Structs ===
     /// The one-time witness struct for the module
@@ -38,12 +48,13 @@ module blhnsuicntrtctkn::chirp {
     }
 
     /// Mint new CHIRP coins according to the predefined schedule
-    public entry fun mint(treasury: &mut Treasury<CHIRP>, clock: &Clock, ctx: &mut TxContext) {
+    public fun mint(treasury: &mut Treasury<CHIRP>, clock: &Clock, ctx: &mut TxContext) {
+        assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
         treasury::mint(treasury, clock, ctx);
     }
 
     /// Replace the schedule entry
-    public entry fun set_entry(
+    public fun set_entry(
         _: &ScheduleAdminCap,
         treasury: &mut Treasury<CHIRP>, 
         index: u64,
@@ -53,12 +64,13 @@ module blhnsuicntrtctkn::chirp {
         epoch_duration_ms: u64,
         timeshift_ms: Option<u64>,
     ) {
+        assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
         let entry = treasury::create_entry<CHIRP>(pools, amounts, number_of_epochs, epoch_duration_ms, timeshift_ms);
         treasury.set_entry(index, entry)
     }
 
     /// Insert the schedule entry before the specified index
-    public entry fun insert_entry(
+    public fun insert_entry(
         _: &ScheduleAdminCap,
         treasury: &mut Treasury<CHIRP>, 
         index: u64,
@@ -68,12 +80,14 @@ module blhnsuicntrtctkn::chirp {
         epoch_duration_ms: u64,
         timeshift_ms: Option<u64>,
     ) {
+        assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
         let entry = treasury::create_entry<CHIRP>(pools, amounts, number_of_epochs, epoch_duration_ms, timeshift_ms);
         treasury.insert_entry(index, entry)
     }
 
     /// Remove the schedule entry at the specified index
-    public entry fun remove_entry(_: &ScheduleAdminCap, treasury: &mut Treasury<CHIRP>, index: u64) {
+    public fun remove_entry(_: &ScheduleAdminCap, treasury: &mut Treasury<CHIRP>, index: u64) {
+        assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
         treasury.remove_entry(index);
     }
 

@@ -55,6 +55,8 @@ module blhnsuicntrtctkn::treasury {
         cap: TreasuryCap<T>,
         /// The current schedule entry
         current_entry: u64,
+        /// The version of the treasury
+        version: u64,
     }
 
     // === Public package functions ===
@@ -69,6 +71,7 @@ module blhnsuicntrtctkn::treasury {
             schedule: schedule,
             cap: cap,
             current_entry: 0,
+            version: 1,
         });
         ScheduleAdminCap {
             id: object::new(ctx),
@@ -147,6 +150,11 @@ module blhnsuicntrtctkn::treasury {
                 next_entry.start_time_ms = option::some(next_start_time_ms + next_timeshift_ms);
             }
         }
+    }
+
+    /// Returns the treasury version.
+    public(package) fun version<T>(treasury: &Treasury<T>): u64 {
+        treasury.version
     }
 
     // === Internal functions ===
