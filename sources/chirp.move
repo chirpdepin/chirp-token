@@ -1,4 +1,13 @@
-/// This module implements the CHIRP token, a custom token for the Chirp Network.
+/// Module for managing the CHIRP token and its minting schedule on the Sui
+/// blockchain.
+///
+/// This module facilitates the creation, minting, and schedule management of
+/// CHIRP tokens. It supports minting according to a predefined on-chain
+/// schedule accessible to any user or contract, while ensuring adherence to
+/// the specified timing constraints. Additionally, the module includes 
+/// administrative functions that empower a designated authority with the
+/// ScheduleAdminCap capability to adapt the minting schedule under exceptional
+/// circumstances.
 module blhnsuicntrtctkn::chirp {
     // === Imports ===
     use blhnsuicntrtctkn::schedule::{Self};
@@ -8,30 +17,39 @@ module blhnsuicntrtctkn::chirp {
 
     // === Errors ===
     #[allow(unused_const)] 
-    /// Migration is not an upgrade
+    /// Error code indicating that a migration attempt is not considered an
+    /// upgrade.
     const ENotUpgrade: u64 = 1;
-    /// Calling functions from the wrong package version
+    /// Error code used when a function call is made from an incompatible
+    /// package version.
     const EWrongVersion: u64 = 2;
 
     // === Constants ===
-    /// Decimals of CHIRP tokens
+    /// Number of decimal places for CHIRP coins, where 10 implies
+    /// 10,000,000,000 smallest units (cents) per CHIRP token.
     const COIN_DECIMALS: u8 = 10;
-    /// Coin human readable description
+    /// Human-readable description of the CHIRP token.
     const COIN_DESCRIPTION: vector<u8> = b"Chirp token description";
-    /// Coin human readable name
+    /// Official name of the CHIRP token.
     const COIN_NAME: vector<u8> = b"Chirp Token";
-    /// Coin symbol in favor of ISO 4217
+    /// Symbol for the CHIRP token, aligned with ISO 4217 formatting.
     const COIN_SYMBOL: vector<u8> = b"CHIRP";
-
-    /// The version of the package
+    /// Current version of the smart contract package.
     const PACKAGE_VERSION: u64 = 1;
 
     // === Structs ===
-    /// The one-time witness struct for the module
+    /// The one-time witness for the module
     public struct CHIRP has drop {}
 
     // === Functions ===
-    /// Creates the CHIRP token and initializes the minting schedule
+    /// Initialize the CHIRP token on the blockchain and set up the minting
+    /// schedule.
+    /// 
+    /// This function creates a new CHIRP token, defines its properties such
+    /// as number of decimals places, symbol, name, and description, and 
+    /// establishes a treasury for it. It also assigns an admin capability to
+    /// the sender of the transaction that allows them to manage the minting
+    /// schedule.
     fun init(otw: CHIRP, ctx: &mut TxContext) {
         let (coin_treasury_cap, metadata) = coin::create_currency(
             otw,
@@ -47,13 +65,46 @@ module blhnsuicntrtctkn::chirp {
         transfer::public_transfer(admin_cap, ctx.sender());
     }
 
-    /// Mint new CHIRP coins according to the predefined schedule
+    /// Mints new CHIRP tokens according to the predefined schedule.
+    ///
+    /// This function allows any user to mint CHIRP tokens in accordance with the
+    /// established minting schedule. No special capabilities are required to invoke
+    /// this function. It can be called anytime after the designated time in the schedule,
+    /// except for the "zero mint," which can occur at any time after contract deployment.
+    ///
+    /// ## Parameters:
+    /// - `treasury`: Mutable reference to the Treasury<CHIRP> managing the minting process.
+    /// - `clock`: Reference to the Clock, providing the current time context.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
+    /// - `EMintLimitReached`: If the minting has reached its limit or if the schedule is not set.
+    /// - `EInappropriateTimeToMint`: If the mint attempt occurs outside the allowable schedule window.
     public fun mint(treasury: &mut Treasury<CHIRP>, clock: &Clock, ctx: &mut TxContext) {
         assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
         treasury::mint(treasury, clock, ctx);
     }
 
-    /// Replace the schedule entry
+    /// Replaces a schedule entry in the `Treasury` of CHIRP tokens.
+    ///
+    /// This function updates the currently active schedule entry or subsequent
+    /// entries. If the contract has been deployed and no minting has occurred,
+    /// it permits replacement of any entry.
+    ///
+    /// ## Parameters:
+    /// - `_`: Reference to the ScheduleAdminCap, ensuring execution by authorized users only.
+    /// - `treasury`: Mutable reference to the Treasury<CHIRP> managing the minting schedule.
+    /// - `index`: Index of the schedule entry to update.
+    /// - `pools`: Vector of addresses for the distribution pools.
+    /// - `amounts`: Vector of amounts corresponding to each address in the pools.
+    /// - `number_of_epochs`: Number of CHIRP epochs the entry will remain active.
+    /// - `epoch_duration_ms`: Duration of each epoch in milliseconds.
+    /// - `timeshift_ms`: Initial time shift for the epoch start in milliseconds.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
+    /// - `EIndexOutOfRange`: If specified index is out of range or entry is irreplaceable.
+    /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
     public fun set_entry(
         _: &ScheduleAdminCap,
         treasury: &mut Treasury<CHIRP>, 
@@ -69,7 +120,27 @@ module blhnsuicntrtctkn::chirp {
         treasury.set_entry(index, entry)
     }
 
-    /// Insert the schedule entry before the specified index
+    /// Inserts a new schedule entry before the specified index in the `Treasury` of CHIRP tokens.
+    ///
+    /// Authorized users with the ScheduleAdminCap can insert a new entry at
+    /// any position following the current active entry. If no minting has
+    /// occurred since the contract's deployment, entries can be inserted at
+    /// any position.
+    ///
+    /// ## Parameters:
+    /// - `_`: Reference to the ScheduleAdminCap, ensuring execution by authorized users only.
+    /// - `treasury`: Mutable reference to the Treasury<CHIRP> managing the minting schedule.
+    /// - `index`: The position at which the new entry will be inserted.
+    /// - `pools`: Vector of addresses for the distribution pools.
+    /// - `amounts`: Vector of amounts corresponding to each address in the pools.
+    /// - `number_of_epochs`: Number of CHIRP epochs the entry will be active.
+    /// - `epoch_duration_ms`: Duration of each epoch in milliseconds.
+    /// - `timeshift_ms`: Initial time shift for the epoch start in milliseconds.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
+    /// - `EIndexOutOfRange`: If the specified index is out of range for insertion.
+    /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
     public fun insert_entry(
         _: &ScheduleAdminCap,
         treasury: &mut Treasury<CHIRP>, 
@@ -85,7 +156,22 @@ module blhnsuicntrtctkn::chirp {
         treasury.insert_entry(index, entry)
     }
 
-    /// Remove the schedule entry at the specified index
+    /// Removes a schedule entry at the specified index in the `Treasury` of CHIRP tokens.
+    ///
+    /// This function allows authorized users, holding the ScheduleAdminCap, to
+    /// remove an existing entry from the minting schedule. The function can
+    /// only modify entries that follow the currently active entry unless no
+    /// minting has occurred since the contract's deployment, in which case any
+    /// entry can be removed.
+    ///
+    /// ## Parameters:
+    /// - `_`: Reference to the ScheduleAdminCap, ensuring execution by authorized users only.
+    /// - `treasury`: Mutable reference to the Treasury<CHIRP> managing the minting schedule.
+    /// - `index`: The position from which the entry will be removed.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
+    /// - `EIndexOutOfRange`: If the specified index is out of range for removal.
     public fun remove_entry(_: &ScheduleAdminCap, treasury: &mut Treasury<CHIRP>, index: u64) {
         assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
         treasury.remove_entry(index);
