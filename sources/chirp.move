@@ -62,7 +62,7 @@ module blhnsuicntrtctkn::chirp {
         amounts: vector<u64>,
         number_of_epochs: u64,
         epoch_duration_ms: u64,
-        timeshift_ms: Option<u64>,
+        timeshift_ms: u64,
     ) {
         assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
         let entry = treasury::create_entry<CHIRP>(pools, amounts, number_of_epochs, epoch_duration_ms, timeshift_ms);
@@ -78,7 +78,7 @@ module blhnsuicntrtctkn::chirp {
         amounts: vector<u64>,
         number_of_epochs: u64,
         epoch_duration_ms: u64,
-        timeshift_ms: Option<u64>,
+        timeshift_ms: u64,
     ) {
         assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
         let entry = treasury::create_entry<CHIRP>(pools, amounts, number_of_epochs, epoch_duration_ms, timeshift_ms);
@@ -147,7 +147,7 @@ module blhnsuicntrtctkn::chirp_tests {
             let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
 
             // Setting zero mint params
-            chirp::set_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, option::none());
+            chirp::set_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
             chirp::mint(&mut treasury, &clock, scenario.ctx());
 
             test_scenario::return_shared(treasury);
@@ -176,7 +176,7 @@ module blhnsuicntrtctkn::chirp_tests {
             let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
 
             // inserting new zero mint stage
-            chirp::insert_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, option::none());
+            chirp::insert_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
             chirp::mint(&mut treasury, &clock, scenario.ctx());
 
             test_scenario::return_shared(treasury);
@@ -204,8 +204,8 @@ module blhnsuicntrtctkn::chirp_tests {
             let clock: Clock = scenario.take_shared();
             let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
 
-            chirp::insert_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, option::none());
-            chirp::insert_entry(&cap, &mut treasury, 1, vector[PUBLISHER], vector[3117], 1, 1000, option::none());
+            chirp::insert_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
+            chirp::insert_entry(&cap, &mut treasury, 1, vector[PUBLISHER], vector[3117], 1, 1000, 0);
             // removing first mint stage
             chirp::remove_entry(&cap, &mut treasury, 0);
 

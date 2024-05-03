@@ -24,7 +24,7 @@ module blhnsuicntrtctkn::treasury {
     /// The stage of the minting schedule.
     public struct Stage<phantom T> has store, copy, drop {
         /// The time shift relative to the end of the preceding entry
-        timeshift_ms: std::option::Option<u64>,
+        timeshift_ms: u64,
         /// The number of epochs to mint.
         number_of_epochs: u64,
         /// The duration of each epoch in milliseconds.
@@ -84,7 +84,7 @@ module blhnsuicntrtctkn::treasury {
         amounts: vector<u64>,
         number_of_epochs: u64,
         epoch_duration_ms: u64,
-        timeshift_ms: Option<u64>,
+        timeshift_ms: u64,
     ): ScheduleEntry<T> {
         assert!(pools.length() == amounts.length(), EInvalidScheduleEntry);
         assert!(number_of_epochs > 0, EInvalidScheduleEntry);
@@ -146,7 +146,7 @@ module blhnsuicntrtctkn::treasury {
             if (treasury.current_entry < treasury.schedule.length()) {
                 let next_entry = &mut treasury.schedule[treasury.current_entry];
                 let next_start_time_ms = next_stage_ms.get_with_default(0);
-                let next_timeshift_ms = next_entry.stage.timeshift_ms.get_with_default(0);
+                let next_timeshift_ms = next_entry.stage.timeshift_ms;
                 next_entry.start_time_ms = option::some(next_start_time_ms + next_timeshift_ms);
             }
         }
@@ -189,7 +189,7 @@ module blhnsuicntrtctkn::treasury {
     /// Returns the mint time of the entry
     fun get_entry_mint_time<T>(entry: &ScheduleEntry<T>): u64 {
         let start_time = entry.start_time_ms.get_with_default(0);
-        let time_shift = entry.stage.timeshift_ms.get_with_default(0);
+        let time_shift = entry.stage.timeshift_ms;
         let time_elapsed_ms = entry.current_epoch * entry.stage.epoch_duration_ms;
         start_time + time_shift + time_elapsed_ms
     }
@@ -221,27 +221,27 @@ module blhnsuicntrtctkn::treasury_tests {
     #[expected_failure(abort_code = EInvalidScheduleEntry)]
     fun test_create_entry_with_invalid_targets() {
         // The number of elements in pools does not match the number of elements in amounts.
-        treasury::create_entry<TREASURY_TESTS>(vector[@0xBBB], vector[], 10, 3600, option::none());
+        treasury::create_entry<TREASURY_TESTS>(vector[@0xBBB], vector[], 10, 3600, 0);
     }
 
     #[test]
     #[expected_failure(abort_code = EInvalidScheduleEntry)]
     fun test_create_entry_with_invalid_number_of_epochs() {
         // The number of epochs is zero.
-        treasury::create_entry<TREASURY_TESTS>(vector[@0xBBB], vector[100], 0, 3600, option::none());
+        treasury::create_entry<TREASURY_TESTS>(vector[@0xBBB], vector[100], 0, 3600, 0);
     }
 
     #[test]
     #[expected_failure(abort_code = EInvalidScheduleEntry)]
     fun test_create_entry_with_invalid_epoch_duration() {
         // The epoch duration is zero.
-        treasury::create_entry<TREASURY_TESTS>(vector[@0xBBB], vector[100], 10, 0, option::none());
+        treasury::create_entry<TREASURY_TESTS>(vector[@0xBBB], vector[100], 10, 0, 0);
     }
 
     #[test]
     fun test_create_entry_returns_valid_entry() {
         // Do not errors because the entry is valid.
-        treasury::create_entry<TREASURY_TESTS>(vector[@0xBBB], vector[100], 10, 3600, option::none());
+        treasury::create_entry<TREASURY_TESTS>(vector[@0xBBB], vector[100], 10, 3600, 0);
     }
     
     #[test]
@@ -251,7 +251,7 @@ module blhnsuicntrtctkn::treasury_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
-            treasury.set_entry(0, treasury::create_entry(vector[@0xBBB], vector[100], 10, 3600, option::none()));
+            treasury.set_entry(0, treasury::create_entry(vector[@0xBBB], vector[100], 10, 3600, 0));
             test_scenario::return_shared(treasury);
         };
         scenario.end();
@@ -261,7 +261,7 @@ module blhnsuicntrtctkn::treasury_tests {
     #[expected_failure(abort_code = EIndexOutOfRange)]
     fun test_set_entry_fails_for_already_minted_stages() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
@@ -275,7 +275,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             // Fails because the stage has already finished.
-            treasury.set_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[100], 10, 3600, option::none()));
+            treasury.set_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[100], 10, 3600, 0));
             test_scenario::return_shared(treasury);
         };
         scenario.end();
@@ -284,13 +284,13 @@ module blhnsuicntrtctkn::treasury_tests {
     #[test]
     fun test_set_entry_changes_the_stage_parameters() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
-            treasury.set_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[1337], 1, 3600, option::none()));
+            treasury.set_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[1337], 1, 3600, 0));
             // Should mint 3117 coins
             treasury.mint(&clock, scenario.ctx());
             test_scenario::return_shared(treasury);
@@ -307,7 +307,7 @@ module blhnsuicntrtctkn::treasury_tests {
     #[expected_failure(abort_code = EInvalidScheduleEntry)]
     fun test_set_entry_fails_on_setting_number_of_epochs_less_or_equal_than_current_epoch() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 2, 3600, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 2, 3600, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
@@ -321,7 +321,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             // Fails because the number of epochs is equal to the current epoch.
-            treasury.set_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()));
+            treasury.set_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, 0));
             test_scenario::return_shared(treasury);
         };
         scenario.end();
@@ -335,7 +335,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             // Fails because the index is out of range.
-            treasury.insert_entry(1, treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()));
+            treasury.insert_entry(1, treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, 0));
             test_scenario::return_shared(treasury);
         };
         scenario.end();
@@ -345,7 +345,7 @@ module blhnsuicntrtctkn::treasury_tests {
     #[expected_failure(abort_code = EIndexOutOfRange)]
     fun test_insert_entry_fails_on_already_minted_stages() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
@@ -354,7 +354,7 @@ module blhnsuicntrtctkn::treasury_tests {
             treasury.mint(&clock, scenario.ctx());
 
             // Fails because the index is before current stage
-            treasury.insert_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()));
+            treasury.insert_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, 0));
 
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
@@ -365,14 +365,14 @@ module blhnsuicntrtctkn::treasury_tests {
     #[test]
     fun test_insert_entry_allows_to_insert_first_entry_if_the_schedule_was_not_started_yet() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
             // Do not errors because the schedule was not started yet.
-            treasury.insert_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[200], 1, 3600, option::none()));
+            treasury.insert_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[200], 1, 3600, 0));
             treasury.mint(&clock, scenario.ctx());
 
             test_scenario::return_shared(treasury);
@@ -388,7 +388,7 @@ module blhnsuicntrtctkn::treasury_tests {
     #[test]
     fun test_insert_entry_allows_to_insert_at_the_end_of_schedule() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
@@ -396,7 +396,7 @@ module blhnsuicntrtctkn::treasury_tests {
             let clock: Clock = scenario.take_shared();
 
             // Do not errors because the index is at the end of the schedule.
-            treasury.insert_entry(1, treasury::create_entry(vector[TEST_POOL1], vector[200], 1, 3600, option::none()));
+            treasury.insert_entry(1, treasury::create_entry(vector[TEST_POOL1], vector[200], 1, 3600, 0));
             treasury.mint(&clock, scenario.ctx());
 
             test_scenario::return_shared(treasury);
@@ -439,7 +439,7 @@ module blhnsuicntrtctkn::treasury_tests {
     #[expected_failure(abort_code = EIndexOutOfRange)]
     fun test_remove_entry_fails_on_removing_past_or_current_entries() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
@@ -458,8 +458,8 @@ module blhnsuicntrtctkn::treasury_tests {
     #[test]
     fun test_remove_entry_allows_to_remove_first_entry_if_the_schedule_was_not_started_yet() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, option::none()),
-            treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 3600, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, 0),
+            treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 3600, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
@@ -489,7 +489,7 @@ module blhnsuicntrtctkn::treasury_tests {
     #[test]
     fun test_mint_creates_and_transfers_coins_to_targets_specified_in_schedule() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1, TEST_POOL2], vector[100, 200], 1, 3600, option::none()),
+            treasury::create_entry(vector[TEST_POOL1, TEST_POOL2], vector[100, 200], 1, 3600, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
@@ -511,7 +511,7 @@ module blhnsuicntrtctkn::treasury_tests {
     #[expected_failure(abort_code = EInappropriateTimeToMint)]
     fun test_mint_fails_when_minting_time_has_not_come_yet() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 2, 1000, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 2, 1000, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
@@ -533,7 +533,7 @@ module blhnsuicntrtctkn::treasury_tests {
     fun test_mint_creates_and_transfers_coins_until_end_of_schedule(){
         let mut scenario = setup_scenario(vector[
             // The schedule contains a single entry with two epochs, each lasting 1000ms
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 2, 1000, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 2, 1000, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
@@ -571,8 +571,8 @@ module blhnsuicntrtctkn::treasury_tests {
     // The next stage must be initiated after the minting stage is complete
     fun test_mint_starts_then_next_stage() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 1000, option::none()),
-            treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 1000, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 1000, 0),
+            treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 1000, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
@@ -599,8 +599,8 @@ module blhnsuicntrtctkn::treasury_tests {
     // The next stage starts after duration of previous stage
     fun test_mint_fails_when_minting_time_has_not_come_yet_for_next_stage() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 1000, option::none()),
-            treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 1000, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 1000, 0),
+            treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 1000, 0),
         ]);
         scenario.next_tx(PUBLISHER);
         {
@@ -620,9 +620,9 @@ module blhnsuicntrtctkn::treasury_tests {
     // The next stage might have the optional time shift
     fun test_mint_fails_when_minting_time_has_not_come_yet_for_next_stage_with_time_shift() {
         let mut scenario = setup_scenario(vector[
-            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 1000, option::none()),
+            treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 1000, 0),
             // The second stage starts 2000 ms after the end of the first stage.
-            treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 1000, option::some(2000)),
+            treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 1000, 2000),
         ]);
         scenario.next_tx(PUBLISHER);
         {
