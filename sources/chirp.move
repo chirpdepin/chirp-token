@@ -44,15 +44,21 @@ module blhnsuicntrtctkn::chirp {
         transfer::public_freeze_object(metadata);
 
         transfer::public_transfer(mintcap, tx_context::sender(ctx));
-        let stagesVecMap = create_stages(ctx);
+        let schedule = crate_schedule(ctx);
 
-        transfer::transfer(Schedule{
-            id: object::new(ctx),
-            stages: stagesVecMap,
-        }, tx_context::sender(ctx));
+        transfer::transfer(schedule, tx_context::sender(ctx));
     }
 
-    // ======================= Createing stages ========================
+    // ======================= Createing Schedule =======================
+    /// Create Schedule
+    fun crate_schedule(ctx: &mut TxContext) : Schedule {
+        let stagesVecMap = create_stages(ctx);
+        Schedule {
+            id: object::new(ctx),
+            stages: stagesVecMap,
+        }
+    }
+
     /// Creates different stages of the coin
     fun create_stages(ctx: &mut TxContext) : VecMap<u8, Stage> {
         let mut vec_map = vec_map::empty<u8, Stage>();
@@ -85,51 +91,58 @@ module blhnsuicntrtctkn::chirp {
     }
     // =================================================================
 
-    public fun scheduled_mint(schedule: &mut Schedule): u8 {
+    public fun scheduled_mint(schedule: &Schedule): u8 {
         let key = 1u8;
         let stage = vec_map::get(&schedule.stages, &key);
-        debug::print(stage);
         return stage.epoch_end
     }
 
     #[test]
     public fun scheduled_mint_test() {
         let publisher = @0xA;
+        let someNonPuplisher = @0xB;
+
         let mut scenario = test_scenario::begin(publisher);
         {
             test_init(ctx(&mut scenario))
         };
 
-        let stagesMap = create_stages(ctx(&mut scenario));
-
         //create Schedule
-        let mut schedule = Schedule {
-            id: object::new(ctx(&mut scenario)),
-            stages: stagesMap
-        };
-
-        // scenario.next_tx(publisher);
-        // {
-        //     transfer::transfer(schedule, publisher);
-        // };
-
         scenario.next_tx(publisher);
         {
-            scheduled_mint(&mut schedule);
+            let schedule = crate_schedule(ctx(&mut scenario));
+            transfer::transfer(schedule, publisher);
         };
-        let key = 1u8;
-        let stage = vec_map::get(&schedule.stages, &key);
-        debug::print(stage);
+        
+        scenario.next_tx(publisher);
+        {
+            let schedule = scenario.take_from_sender<Schedule>();
+            scheduled_mint(&schedule);
+            transfer::transfer(schedule, someNonPuplisher);
+        };
+
+        scenario.next_tx(someNonPuplisher);
+        {
+            let schedule = scenario.take_from_address<Schedule>(publisher);
+            transfer::transfer(schedule, someNonPuplisher);
+
+            let schedule = scenario.take_from_address<Schedule>(someNonPuplisher);
+            let key = 1u8;
+            let stage = vec_map::get(&schedule.stages, &key);
+            debug::print(stage);
+            transfer::transfer(schedule, someNonPuplisher);
+        };
+
         scenario.end();
     }
 
     #[test_only]
-    use sui::test_scenario::{Self, next_tx, ctx};.
+    use sui::test_scenario::{Self, next_tx, ctx};
 
     #[test_only]
     /// Wrapper of module initializer for testing
     public fun test_init(ctx: &mut TxContext) {
         init(CHIRP{}, ctx)
-    } gll
+    }
 
 }
