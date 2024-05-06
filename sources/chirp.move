@@ -4,7 +4,7 @@
 /// This module facilitates the creation, minting, and schedule management of
 /// CHIRP tokens. It supports minting according to a predefined on-chain
 /// schedule accessible to any user or contract, while ensuring adherence to
-/// the specified timing constraints. Additionally, the module includes 
+/// the specified timing constraints. Additionally, the module includes
 /// administrative functions that empower a designated authority with the
 /// ScheduleAdminCap capability to adapt the minting schedule under exceptional
 /// circumstances.
@@ -14,9 +14,10 @@ module blhnsuicntrtctkn::chirp {
     use blhnsuicntrtctkn::treasury::{Self, ScheduleAdminCap, Treasury};
     use sui::clock::{Clock};
     use sui::coin::{Self};
+    use sui::url;
 
     // === Errors ===
-    #[allow(unused_const)] 
+    #[allow(unused_const)]
     /// Error code indicating that a migration attempt is not considered an
     /// upgrade.
     const ENotUpgrade: u64 = 1;
@@ -36,6 +37,8 @@ module blhnsuicntrtctkn::chirp {
     const COIN_SYMBOL: vector<u8> = b"CHIRP";
     /// Current version of the smart contract package.
     const PACKAGE_VERSION: u64 = 1;
+    /// Coin icon
+    const COIN_ICON: vector<u8> = b"https://storage.googleapis.com/chirp-blhn-assets/images/CHIRP_White_OBG.svg";
 
     // === Structs ===
     /// The one-time witness for the module
@@ -44,9 +47,9 @@ module blhnsuicntrtctkn::chirp {
     // === Functions ===
     /// Initialize the CHIRP token on the blockchain and set up the minting
     /// schedule.
-    /// 
+    ///
     /// This function creates a new CHIRP token, defines its properties such
-    /// as number of decimals places, symbol, name, and description, and 
+    /// as number of decimals places, symbol, name, and description, and
     /// establishes a treasury for it. It also assigns an admin capability to
     /// the sender of the transaction that allows them to manage the minting
     /// schedule.
@@ -57,7 +60,7 @@ module blhnsuicntrtctkn::chirp {
             COIN_SYMBOL,
             COIN_NAME,
             COIN_DESCRIPTION,
-            option::none(), // No icon
+            option::some(url::new_unsafe_from_bytes(COIN_ICON)),
             ctx,
         );
         transfer::public_freeze_object(metadata);
@@ -107,7 +110,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
     public fun set_entry(
         _: &ScheduleAdminCap,
-        treasury: &mut Treasury<CHIRP>, 
+        treasury: &mut Treasury<CHIRP>,
         index: u64,
         pools: vector<address>,
         amounts: vector<u64>,
@@ -143,7 +146,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
     public fun insert_entry(
         _: &ScheduleAdminCap,
-        treasury: &mut Treasury<CHIRP>, 
+        treasury: &mut Treasury<CHIRP>,
         index: u64,
         pools: vector<address>,
         amounts: vector<u64>,
@@ -204,7 +207,7 @@ module blhnsuicntrtctkn::chirp_tests {
     fun test_currency_creation() {
         let mut scenario = test_scenario::begin(PUBLISHER);
         {
-            chirp::init_for_testing(scenario.ctx()); 
+            chirp::init_for_testing(scenario.ctx());
         };
         scenario.next_tx(PUBLISHER);
         {
