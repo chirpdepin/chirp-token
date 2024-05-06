@@ -1,216 +1,333 @@
+/// Module for managing the CHIRP token and its minting schedule on the Sui
+/// blockchain.
+///
+/// This module facilitates the creation, minting, and schedule management of
+/// CHIRP tokens. It supports minting according to a predefined on-chain
+/// schedule accessible to any user or contract, while ensuring adherence to
+/// the specified timing constraints. Additionally, the module includes
+/// administrative functions that empower a designated authority with the
+/// ScheduleAdminCap capability to adapt the minting schedule under exceptional
+/// circumstances.
 module blhnsuicntrtctkn::chirp {
-    use std::option;
-    use sui::coin::{Self, TreasuryCap};
-    use sui::transfer;
-    use sui::tx_context::{Self, TxContext};
+    // === Imports ===
+    use blhnsuicntrtctkn::schedule::{Self};
+    use blhnsuicntrtctkn::treasury::{Self, ScheduleAdminCap, Treasury};
+    use sui::clock::{Clock};
+    use sui::coin::{Self};
     use sui::url;
 
-    /// Maximum supply of CHIRP tokens
-    const MaximumSupply: u64 = 3000000000000000000u64;
+    // === Errors ===
+    #[allow(unused_const)]
+    /// Error code indicating that a migration attempt is not considered an
+    /// upgrade.
+    const ENotUpgrade: u64 = 1;
+    /// Error code used when a function call is made from an incompatible
+    /// package version.
+    const EWrongVersion: u64 = 2;
 
-    /// Decimals of CHIRP tokens
-    const CoinDecimals: u8 = 10;
-
-    /// Coin symbol in favor of ISO 4217
-    const CoinSymbol: vector<u8> = b"CHIRP";
-
+    // === Constants ===
+    /// Number of decimal places for CHIRP coins, where 10 implies
+    /// 10,000,000,000 smallest units (cents) per CHIRP token.
+    const COIN_DECIMALS: u8 = 10;
+    /// Human-readable description of the CHIRP token.
+    const COIN_DESCRIPTION: vector<u8> = b"Chirp token description";
+    /// Official name of the CHIRP token.
+    const COIN_NAME: vector<u8> = b"Chirp Token";
+    /// Symbol for the CHIRP token, aligned with ISO 4217 formatting.
+    const COIN_SYMBOL: vector<u8> = b"CHIRP";
+    /// Current version of the smart contract package.
+    const PACKAGE_VERSION: u64 = 1;
     /// Coin icon
-    const CoinIcon: vector<u8> = b"https://storage.googleapis.com/chirp-blhn-assets/images/CHIRP_White_OBG.svg";
+    const COIN_ICON: vector<u8> = b"https://storage.googleapis.com/chirp-blhn-assets/images/CHIRP_White_OBG.svg";
 
-    /// Coin human readable name
-    const CoinName: vector<u8> = b"Chirp Token";
+    // === Structs ===
+    /// The one-time witness for the module
+    public struct CHIRP has drop {}
 
-    /// Coin human readable description
-    const CoinDescription: vector<u8> = b"Chirp token description";
-
-    /// Error code for minting more tokens than allowed
-    const EMintLimitReached: u64 = 0;
-
-    /// Error code for minting not a whole number of tokens
-    const EInvalidMintAmount: u64 = 1;
-
-    // Liquidity pool for netwrok keepers
-    const Keepers: address = @0x02ab60f0e82d58cbd047dd27d9e09d08a9b41d8d08f2f08bd0f25424d08c7f77;
-
-    // Liquidity pool for netwrok keepers growth
-    const KeepersGrowth: address = @0x021e2fcdb57234a42a588654bc2b31fa1a53896cdc11b81d9332a5287cd0f248;
-
-    /// Liquidity pool for investors
-    const Investors: address = @0x6bf9e238beb4391690ec02ce41cb480f91a78178819574bf6e9882cc238920d3;
-
-    /// Token treasury
-    const TokenTreasury: address = @0xc196c590ff20d63d17271c8dcceafc3432a47f629292fa9f552f5c8c4ea92b4b;
-
-    #[allow(unused_const)]
-    /// Liquidity pool for CHIRP team
-    const Team: address = @0xd841709b605bafdcb27d544b0a76e35cd3e904a6b6f5b4347e836c1dd24f6306;
-
-    #[allow(unused_const)]
-    /// Strategic advisors pool
-    const StrategicAdvisors: address = @0x573a0841ab7c22c1e5c714c4e5ab1c440546c8c36c2b94eba62665c5f75237d6;
-
-    // Liquidity pool
-    const Liquidity: address = @0x9575fc19fedcd62a406385dcc7607c567d91a6df94e2eea9a941051bbb6ce65e;
-
-    struct CHIRP has drop {}
-
-    #[allow(unused_function)]
-    /// Module initializer is called once on module publish. A mint
-    /// cap is sent to the publisher, who then controls minting
-    fun init(witness: CHIRP, ctx: &mut TxContext) {
-        let (mintcap, metadata) = coin::create_currency(witness, CoinDecimals, CoinSymbol, CoinName, CoinDescription, option::some(url::new_unsafe_from_bytes(CoinIcon)), ctx);
+    // === Functions ===
+    /// Initialize the CHIRP token on the blockchain and set up the minting
+    /// schedule.
+    ///
+    /// This function creates a new CHIRP token, defines its properties such
+    /// as number of decimals places, symbol, name, and description, and
+    /// establishes a treasury for it. It also assigns an admin capability to
+    /// the sender of the transaction that allows them to manage the minting
+    /// schedule.
+    fun init(otw: CHIRP, ctx: &mut TxContext) {
+        let (coin_treasury_cap, metadata) = coin::create_currency(
+            otw,
+            COIN_DECIMALS,
+            COIN_SYMBOL,
+            COIN_NAME,
+            COIN_DESCRIPTION,
+            option::some(url::new_unsafe_from_bytes(COIN_ICON)),
+            ctx,
+        );
         transfer::public_freeze_object(metadata);
-
-        // Pre-mint the tokens and transfer them to the pools
-        coin::mint_and_transfer(&mut mintcap, 9_000_000_0000000000, Investors, ctx);
-        coin::mint_and_transfer(&mut mintcap, 3_300_000_0000000000, TokenTreasury, ctx);
-        coin::mint_and_transfer(&mut mintcap, 12_000_000_0000000000, Liquidity, ctx);
-
-        transfer::public_transfer(mintcap, tx_context::sender(ctx));
+        let admin_cap = treasury::create(coin_treasury_cap, schedule::default(), ctx);
+        transfer::public_transfer(admin_cap, ctx.sender());
     }
 
-    /// Mint tokens and transfer them to the pools according to the tokenomics
-    public entry fun mint(mint_cap: &mut TreasuryCap<CHIRP>, cents: u64, ctx: &mut TxContext) {
-        assert!(cents <= (MaximumSupply - coin::total_supply(mint_cap)), EMintLimitReached);
-        // the amount must be the whole tokens
-        assert!(cents % 10_000_000_000 == 0, EInvalidMintAmount);
+    /// Mints new CHIRP tokens according to the predefined schedule.
+    ///
+    /// This function allows any user to mint CHIRP tokens in accordance with the
+    /// established minting schedule. No special capabilities are required to invoke
+    /// this function. It can be called anytime after the designated time in the schedule,
+    /// except for the "zero mint," which can occur at any time after contract deployment.
+    ///
+    /// ## Parameters:
+    /// - `treasury`: Mutable reference to the Treasury<CHIRP> managing the minting process.
+    /// - `clock`: Reference to the Clock, providing the current time context.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
+    /// - `EMintLimitReached`: If the minting has reached its limit or if the schedule is not set.
+    /// - `EInappropriateTimeToMint`: If the mint attempt occurs outside the allowable schedule window.
+    public fun mint(treasury: &mut Treasury<CHIRP>, clock: &Clock, ctx: &mut TxContext) {
+        assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
+        treasury::mint(treasury, clock, ctx);
+    }
 
-        let amount = cents/10_000_000_000;
-        coin::mint_and_transfer(mint_cap, amount * 1903222709, Keepers, ctx);
-        coin::mint_and_transfer(mint_cap, amount * 1280122892 , KeepersGrowth, ctx);
-        coin::mint_and_transfer(mint_cap, amount * 5760553013 , Investors, ctx);
-        coin::mint_and_transfer(mint_cap, amount * 1056101386, TokenTreasury, ctx);
+    /// Replaces a schedule entry in the `Treasury` of CHIRP tokens.
+    ///
+    /// This function updates the currently active schedule entry or subsequent
+    /// entries. If the contract has been deployed and no minting has occurred,
+    /// it permits replacement of any entry.
+    ///
+    /// ## Parameters:
+    /// - `_`: Reference to the ScheduleAdminCap, ensuring execution by authorized users only.
+    /// - `treasury`: Mutable reference to the Treasury<CHIRP> managing the minting schedule.
+    /// - `index`: Index of the schedule entry to update.
+    /// - `pools`: Vector of addresses for the distribution pools.
+    /// - `amounts`: Vector of amounts corresponding to each address in the pools.
+    /// - `number_of_epochs`: Number of CHIRP epochs the entry will remain active.
+    /// - `epoch_duration_ms`: Duration of each epoch in milliseconds.
+    /// - `timeshift_ms`: Initial time shift for the epoch start in milliseconds.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
+    /// - `EIndexOutOfRange`: If specified index is out of range or entry is irreplaceable.
+    /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
+    public fun set_entry(
+        _: &ScheduleAdminCap,
+        treasury: &mut Treasury<CHIRP>,
+        index: u64,
+        pools: vector<address>,
+        amounts: vector<u64>,
+        number_of_epochs: u64,
+        epoch_duration_ms: u64,
+        timeshift_ms: u64,
+    ) {
+        assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
+        let entry = treasury::create_entry<CHIRP>(pools, amounts, number_of_epochs, epoch_duration_ms, timeshift_ms);
+        treasury.set_entry(index, entry)
+    }
+
+    /// Inserts a new schedule entry before the specified index in the `Treasury` of CHIRP tokens.
+    ///
+    /// Authorized users with the ScheduleAdminCap can insert a new entry at
+    /// any position following the current active entry. If no minting has
+    /// occurred since the contract's deployment, entries can be inserted at
+    /// any position.
+    ///
+    /// ## Parameters:
+    /// - `_`: Reference to the ScheduleAdminCap, ensuring execution by authorized users only.
+    /// - `treasury`: Mutable reference to the Treasury<CHIRP> managing the minting schedule.
+    /// - `index`: The position at which the new entry will be inserted.
+    /// - `pools`: Vector of addresses for the distribution pools.
+    /// - `amounts`: Vector of amounts corresponding to each address in the pools.
+    /// - `number_of_epochs`: Number of CHIRP epochs the entry will be active.
+    /// - `epoch_duration_ms`: Duration of each epoch in milliseconds.
+    /// - `timeshift_ms`: Initial time shift for the epoch start in milliseconds.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
+    /// - `EIndexOutOfRange`: If the specified index is out of range for insertion.
+    /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
+    public fun insert_entry(
+        _: &ScheduleAdminCap,
+        treasury: &mut Treasury<CHIRP>,
+        index: u64,
+        pools: vector<address>,
+        amounts: vector<u64>,
+        number_of_epochs: u64,
+        epoch_duration_ms: u64,
+        timeshift_ms: u64,
+    ) {
+        assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
+        let entry = treasury::create_entry<CHIRP>(pools, amounts, number_of_epochs, epoch_duration_ms, timeshift_ms);
+        treasury.insert_entry(index, entry)
+    }
+
+    /// Removes a schedule entry at the specified index in the `Treasury` of CHIRP tokens.
+    ///
+    /// This function allows authorized users, holding the ScheduleAdminCap, to
+    /// remove an existing entry from the minting schedule. The function can
+    /// only modify entries that follow the currently active entry unless no
+    /// minting has occurred since the contract's deployment, in which case any
+    /// entry can be removed.
+    ///
+    /// ## Parameters:
+    /// - `_`: Reference to the ScheduleAdminCap, ensuring execution by authorized users only.
+    /// - `treasury`: Mutable reference to the Treasury<CHIRP> managing the minting schedule.
+    /// - `index`: The position from which the entry will be removed.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
+    /// - `EIndexOutOfRange`: If the specified index is out of range for removal.
+    public fun remove_entry(_: &ScheduleAdminCap, treasury: &mut Treasury<CHIRP>, index: u64) {
+        assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
+        treasury.remove_entry(index);
     }
 
     #[test_only]
-    use sui::test_scenario::{Self, next_tx, ctx};
-    #[test_only]
-    use std::string;
-
-    #[test_only]
-    /// Wrapper of module initializer for testing
-    public fun test_init(ctx: &mut TxContext) {
+    public fun init_for_testing(ctx: &mut TxContext) {
         init(CHIRP{}, ctx)
     }
 
+    #[test_only] public fun coin_decimals(): u8 { COIN_DECIMALS }
+    #[test_only] public fun coin_description(): vector<u8> { COIN_DESCRIPTION }
+    #[test_only] public fun coin_name(): vector<u8> { COIN_NAME }
+    #[test_only] public fun coin_symbol(): vector<u8> { COIN_SYMBOL }
+}
+
+#[test_only]
+module blhnsuicntrtctkn::chirp_tests {
+    use blhnsuicntrtctkn::chirp::{Self, CHIRP};
+    use blhnsuicntrtctkn::treasury::{ScheduleAdminCap, Treasury};
+    use std::string;
+    use sui::clock::{Self, Clock};
+    use sui::coin::{Self};
+    use sui::test_scenario;
+    use sui::test_utils;
+
+    const PUBLISHER: address = @0xA;
+
     #[test]
-    fun currency_creation() {
-        // Initialize a mock sender address
-        let publisher = @0xA;
-
-        // Begins a multi transaction scenario with publisher as the sender
-        let scenario = test_scenario::begin(publisher);
-
-        // Run the chirp coin module init function
+    fun test_currency_creation() {
+        let mut scenario = test_scenario::begin(PUBLISHER);
         {
-            test_init(ctx(&mut scenario))
+            chirp::init_for_testing(scenario.ctx());
         };
-        next_tx(&mut scenario, publisher);
+        scenario.next_tx(PUBLISHER);
         {
             let metadata = test_scenario::take_immutable<coin::CoinMetadata<CHIRP>>(&scenario);
-            let mintcap = test_scenario::take_from_sender<TreasuryCap<CHIRP>>(&scenario);
-            assert!(coin::get_decimals(&metadata) == CoinDecimals, 1);
-            assert!(string::index_of(&string::from_ascii(coin::get_symbol(&metadata)), &string::utf8(CoinSymbol)) == 0, 2);
-            assert!(string::index_of(&coin::get_name(&metadata), &string::utf8(CoinName)) == 0, 3);
-            assert!(string::index_of(&coin::get_description(&metadata), &string::utf8(CoinDescription)) == 0, 4);
-
-            // Investors pool should have 9.000.000 tokens pre-minted
-            let investors = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Investors);
-            assert!(coin::value(&investors) == 9_000_000_0000000000, 5);
-            test_scenario::return_to_address<coin::Coin<CHIRP>>(Investors, investors);
-
-            // Treasury pool should have 3.300.000 tokens pre-minted
-            let tokenTreasury = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, TokenTreasury);
-            assert!(coin::value(&tokenTreasury) == 3_300_000_0000000000, 6);
-            test_scenario::return_to_address<coin::Coin<CHIRP>>(TokenTreasury, tokenTreasury);
-
-            // Liquidity pool should have 12.000.000 tokens pre-minted
-            let liquidity = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Liquidity);
-            assert!(coin::value(&liquidity) == 12_000_000_0000000000, 7);
-            test_scenario::return_to_address<coin::Coin<CHIRP>>(Liquidity, liquidity);
-
-            test_scenario::return_immutable<coin::CoinMetadata<CHIRP>>(metadata);
-            test_scenario::return_to_address<TreasuryCap<CHIRP>>(publisher, mintcap);
+            test_utils::assert_eq(coin::get_decimals(&metadata), chirp::coin_decimals());
+            test_utils::assert_eq(string::index_of(&string::from_ascii(metadata.get_symbol()), &string::utf8(chirp::coin_symbol())), 0);
+            test_utils::assert_eq(string::index_of(&metadata.get_name(), &string::utf8(chirp::coin_name())), 0);
+            test_utils::assert_eq(string::index_of(&metadata.get_description(), &string::utf8(chirp::coin_description())), 0);
+            test_scenario::return_immutable(metadata);
         };
-
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
-    fun mint_normal() {
-        let publisher = @0xA;
-        let scenario = test_scenario::begin(publisher);
+    fun test_set_entry_allows_to_modify_default_schedule()
+    {
+        let mut scenario = test_scenario::begin(PUBLISHER);
         {
-            test_init(ctx(&mut scenario))
+            chirp::init_for_testing(scenario.ctx());
+            clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
         };
-
-        let tokensToMint: u64 = 10_000_000_000;
-
-        // Mint `tokensToMint` tokens
-        next_tx(&mut scenario, publisher);
+        scenario.next_tx(PUBLISHER);
         {
-            let mintcap = test_scenario::take_from_sender<TreasuryCap<CHIRP>>(&scenario);
-            mint(&mut mintcap, tokensToMint, test_scenario::ctx(&mut scenario));
-            test_scenario::return_to_sender<TreasuryCap<CHIRP>>(&scenario, mintcap);
+            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
+            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+
+            // Setting zero mint params
+            chirp::set_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
+            chirp::mint(&mut treasury, &clock, scenario.ctx());
+
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
+            test_scenario::return_to_sender(&scenario, cap);
         };
-        next_tx(&mut scenario, publisher);
+        scenario.next_tx(PUBLISHER);
         {
-            // Network keepers pool should have 19.03222709% of the minted tokens
-            let networkKeepersCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Keepers);
-            assert!(coin::value(&networkKeepersCoin) == tokensToMint/10_000_000_000 * 1903222709, 1);
-            test_scenario::return_to_address<coin::Coin<CHIRP>>(Keepers, networkKeepersCoin);
-
-            // Network keepers growth pool should have 12.80122892% of the minted tokens
-            let keepersGrowthCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, KeepersGrowth);
-            assert!(coin::value(&keepersGrowthCoin) == tokensToMint/10_000_000_000 * 1280122892, 1);
-            test_scenario::return_to_address<coin::Coin<CHIRP>>(KeepersGrowth, keepersGrowthCoin);
-
-            // Investors pool should have 57.60553013% of the minted tokens
-            let investorsCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, Investors);
-            assert!(coin::value(&investorsCoin) == tokensToMint/10_000_000_000 * 5760553013,  2);
-            test_scenario::return_to_address<coin::Coin<CHIRP>>(Investors, investorsCoin);
-
-            // Token treasury pool should have 10.56101386% of the minted tokens
-            let tokenTreasuryCoin = test_scenario::take_from_address<coin::Coin<CHIRP>>(&scenario, TokenTreasury);
-            assert!(coin::value(&tokenTreasuryCoin) == tokensToMint/10_000_000_000 * 1056101386, 3);
-            test_scenario::return_to_address<coin::Coin<CHIRP>>(TokenTreasury, tokenTreasuryCoin);
+            assert_eq_chirp_coin(PUBLISHER, 1000, &scenario);
         };
-        test_scenario::end(scenario);
+        scenario.end();
     }
 
     #[test]
-    #[expected_failure(abort_code = EMintLimitReached)]
-    fun mint_limit_reached() {
-        let publisher = @0xA;
-        let scenario = test_scenario::begin(publisher);
+    fun test_insert_entry_allows_add_new_entries_into_default_schedule()
+    {
+        let mut scenario = test_scenario::begin(PUBLISHER);
         {
-            test_init(ctx(&mut scenario))
+            chirp::init_for_testing(scenario.ctx());
+            clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
         };
-        // Mint more than MaximumSupply tokens
-        next_tx(&mut scenario, publisher);
+        scenario.next_tx(PUBLISHER);
         {
-            let mintcap = test_scenario::take_from_sender<TreasuryCap<CHIRP>>(&scenario);
-            mint(&mut mintcap, MaximumSupply + 10_000_000_000, test_scenario::ctx(&mut scenario));
-            test_scenario::return_to_sender<TreasuryCap<CHIRP>>(&scenario, mintcap);
+            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
+            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+
+            // inserting new zero mint stage
+            chirp::insert_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
+            chirp::mint(&mut treasury, &clock, scenario.ctx());
+
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
+            test_scenario::return_to_sender(&scenario, cap);
         };
-        test_scenario::end(scenario);
+        scenario.next_tx(PUBLISHER);
+        {
+            assert_eq_chirp_coin(PUBLISHER, 1000, &scenario);
+        };
+        scenario.end();
     }
 
     #[test]
-    #[expected_failure(abort_code = EInvalidMintAmount)]
-    fun mint_invalid_amount() {
-        let publisher = @0xA;
-        let scenario = test_scenario::begin(publisher);
+    fun test_remove_entry_allows_to_remove_entries_from_default_schedule()
+    {
+        let mut scenario = test_scenario::begin(PUBLISHER);
         {
-            test_init(ctx(&mut scenario))
+            chirp::init_for_testing(scenario.ctx());
+            clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
         };
-        // Mint amount of tokens that is not a whole number
-        next_tx(&mut scenario, publisher);
+        scenario.next_tx(PUBLISHER);
         {
-            let mintcap = test_scenario::take_from_sender<TreasuryCap<CHIRP>>(&scenario);
-            mint(&mut mintcap, 100, test_scenario::ctx(&mut scenario));
-            test_scenario::return_to_sender<TreasuryCap<CHIRP>>(&scenario, mintcap);
+            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let clock: Clock = scenario.take_shared();
+            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+
+            chirp::insert_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
+            chirp::insert_entry(&cap, &mut treasury, 1, vector[PUBLISHER], vector[3117], 1, 1000, 0);
+            // removing first mint stage
+            chirp::remove_entry(&cap, &mut treasury, 0);
+
+            // Should mint 3117 coins
+            chirp::mint(&mut treasury, &clock, scenario.ctx());
+
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
+            test_scenario::return_to_sender(&scenario, cap);
         };
-        test_scenario::end(scenario);
+        scenario.next_tx(PUBLISHER);
+        {
+            assert_eq_chirp_coin(PUBLISHER, 3117, &scenario);
+        };
+        scenario.end();
+    }
+
+    /// Asserts that the value of the CHIRP coin held by the owner is equal to the expected value.
+    fun assert_eq_chirp_coin(owner: address, expected_value: u64, scenario: &test_scenario::Scenario) {
+        test_utils::assert_eq(total_coins(owner, scenario), expected_value);
+    }
+
+    /// Returns the total value of the test coins held by the owner.
+    fun total_coins(owner: address, scenario: &test_scenario::Scenario): u64 {
+        let coin_ids = test_scenario::ids_for_address<coin::Coin<CHIRP>>(owner);
+        let mut i = 0;
+        let mut total = 0;
+        while (i < coin_ids.length()) {
+            let coin = test_scenario::take_from_address_by_id<coin::Coin<CHIRP>>(scenario, owner, coin_ids[i]);
+            total = total + coin::value(&coin);
+            test_scenario::return_to_address<coin::Coin<CHIRP>>(owner, coin);
+            i = i + 1;
+        };
+        total
     }
 }
