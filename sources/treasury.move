@@ -1,66 +1,96 @@
-/// This module implements scheduled minting mechanics for the coin.
+/// Module for managing scheduled minting and treasury operations for tokens on
+/// the Sui blockchain.
+///
+/// This module provides the necessary infrastructure for scheduled minting.
+/// It offers functionality to create, modify, and manage minting schedules,
+/// complemented by an administration capability enabled via the ScheduleAdminCap.
 module blhnsuicntrtctkn::treasury {
     // === Imports ===
     use sui::coin::{Self, TreasuryCap};
     use sui::clock::{Clock};
 
     // === Errors ===
-    /// Error code for minting more tokens than allowed
+    /// Error code returned when the minting schedule has ended.
     const EMintLimitReached: u64 = 0;
-    /// Error code for invalid schedule entry
+    /// Error code returned when a schedule entry is malformed or does not meet
+    /// validation criteria.
     const EInvalidScheduleEntry: u64 = 1;
-    /// Error code for inpropriate time to mint
+    /// Error code returned when minting is attempted at a time not allowed by
+    /// the minting schedule.
     const EInappropriateTimeToMint: u64 = 2;
-    /// Error code for index out of range
+    /// Error code returned when the specified index for a schedule operation
+    /// is outside the allowable range.
     const EIndexOutOfRange: u64 = 3;
 
     // === Structs ===
-    /// The schedule's admin capability that allows to modify the schedule.
+    /// Administrative capability for modifying the minting schedule.
+    ///
+    /// This struct acts as an authorization object, enabling its holder to
+    /// perform authorized actions such as modifying the minting schedule. It
+    /// ensures that schedule modifications are restricted to authorized
+    /// personnel only.
     public struct ScheduleAdminCap has key, store {
-        /// The unique identifier of the schedule admin cap.
+        /// Unique identifier for the administrative capability.
         id: UID,
     }
 
-    /// The stage of the minting schedule.
+    /// Represents a specific phase within the minting schedule.
     public struct Stage<phantom T> has store, copy, drop {
-        /// The time shift relative to the end of the preceding entry
+        /// Time shift in milliseconds from the end of the previous stage,
+        /// setting the delay before this stage activates.
         timeshift_ms: u64,
-        /// The number of epochs to mint.
+        /// Number of epochs this stage will persist, each epoch represents a
+        /// discrete minting event.
         number_of_epochs: u64,
-        /// The duration of each epoch in milliseconds.
+        /// Duration of each epoch within this stage in milliseconds.
         epoch_duration_ms: u64,
-        /// The pool addresses
+        /// Addresses of the pools where the minted tokens are distributed.
         pools: vector<address>,
-        /// Amount of coins to mint in each epoch.
+        /// Specific amounts of tokens to mint per pool per epoch.
         amounts: vector<u64>,
     }
 
-    /// The schedule entry.
+    /// Represents a single entry within the minting schedule of the treasury.
     public struct ScheduleEntry<phantom T> has store, drop {
-        /// The start time of the entry in milliseconds.
+        /// Start time for this entry in milliseconds, indicating when the
+        /// entry was activated. This field can be null if the entry has not
+        /// been activated yet.
         start_time_ms: std::option::Option<u64>,
-        /// The current minting epoch number.
+        /// Current count of completed minting epochs within this entry. Each epoch
+        /// represents a single minting operation under the defined parameters.
         current_epoch: u64,
-        /// Stage parameters
+        /// Defines the operational parameters for minting including the period,
+        /// distribution pools, and the amounts to be minted for each pool over
+        /// the specified number of epochs.
         stage: Stage<T>,
     }
 
-    /// The minting treasury
+    /// Manages minting operations and schedules for a specific token.
     public struct Treasury<phantom T> has key, store{
         /// The unique identifier of the treasury.
         id: UID,
-        /// The schedule entries
+        /// List of schedule entries for managing token minting.
         schedule: vector<ScheduleEntry<T>>,
-        /// The treasury cap for minting coins.
+        /// Capability object that grants the treasury the authority to mint
+        /// tokens.
         cap: TreasuryCap<T>,
-        /// The current schedule entry
+        /// Index of the active schedule entry.
         current_entry: u64,
-        /// The version of the treasury
+        /// Version of the treasury's configuration and logic.
         version: u64,
     }
 
     // === Public package functions ===
-    /// Creates a new treasury with minting schedule.
+    /// Creates a new treasury with a defined minting schedule.
+    ///
+    /// This function creates shared treasury, setting up the minting schedule
+    /// and assigning the necessary capabilities for minting. It returns a
+    /// ScheduleAdminCap, which grants the holder the ability to modify the
+    /// minting schedule as needed.
+    ///
+    /// ## Parameters:
+    /// - `cap`: TreasuryCap object that provides the minting capability.
+    /// - `schedule`: List of ScheduleEntry objects defining the minting schedule.
     public(package) fun create<T>(
         cap: TreasuryCap<T>,
         schedule: vector<ScheduleEntry<T>>,
@@ -78,7 +108,17 @@ module blhnsuicntrtctkn::treasury {
         }
     }
 
-    /// Creates a new schedule entry.
+    /// Creates a new schedule entry with the specified parameters.
+    ///
+    /// ## Parameters:
+    /// - `pools`: Vector of addresses for the distribution pools.
+    /// - `amounts`: Vector of amounts corresponding to each address in the pools.
+    /// - `number_of_epochs`: Number of CHIRP epochs the entry will be active.
+    /// - `epoch_duration_ms`: Duration of each epoch in milliseconds.
+    /// - `timeshift_ms`: Initial time shift for the entry start in milliseconds.
+    ///
+    /// ## Errors:
+    /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
     public(package) fun create_entry<T>(
         pools: vector<address>,
         amounts: vector<u64>,
@@ -102,7 +142,19 @@ module blhnsuicntrtctkn::treasury {
         }
     }
     
-    /// Replaces the schedule entry at the specified index with the new entry.
+    /// Replaces a schedule entry in the `Treasury`.
+    ///
+    /// This function updates the currently active schedule entry or subsequent
+    /// entries. If the contract has been deployed and no minting has occurred,
+    /// it permits replacement of any entry.
+    ///
+    /// ## Parameters:
+    /// - `treasury`: Mutable reference to the Treasury<T> managing the minting schedule.
+    /// - `index`: Index of the schedule entry to update.
+    /// - `entry`: New ScheduleEntry object to replace the existing entry.
+    ///
+    /// ## Errors:
+    /// - `EIndexOutOfRange`: If specified index is out of range or entry is irreplaceable.
     public(package) fun set_entry<T>(
         treasury: &mut Treasury<T>,
         index: u64,
@@ -117,7 +169,19 @@ module blhnsuicntrtctkn::treasury {
         target_entry.stage = entry.stage;
     }
 
-    /// Inserts the schedule entry at the specified index.
+    /// Inserts a new schedule entry before the specified index in the `Treasury`.
+    ///
+    /// This function allows the insertion of a new schedule entry at any
+    /// position following the current active entry. If no minting has occurred
+    /// yet, entries can be inserted at any position.
+    ///
+    /// ## Parameters:
+    /// - `treasury`: Mutable reference to the Treasury<T> managing the minting schedule.
+    /// - `index`: The position at which the new entry will be inserted.
+    /// - `entry`: New ScheduleEntry object to replace the existing entry.
+    ///
+    /// ## Errors:
+    /// - `EIndexOutOfRange`: If the specified index is out of range for insertion.
     public(package) fun insert_entry<T>(
         treasury: &mut Treasury<T>,
         index: u64,
@@ -128,14 +192,39 @@ module blhnsuicntrtctkn::treasury {
         treasury.schedule.insert(entry, index);
     }
 
-    /// Removes the schedule entry at the specified index.
+    /// Removes a schedule entry at the specified index in the `Treasury`.
+    ///
+    /// This function allows to remove an existing entry from the minting
+    /// schedule. The function can only modify entries that follow the
+    /// currently active entry unless no minting has occurred yet, in which
+    /// case any entry can be removed.
+    ///
+    /// ## Parameters:
+    /// - `treasury`: Mutable reference to the Treasury<T> managing the minting schedule.
+    /// - `index`: The position from which the entry will be removed.
+    /// 
+    /// ## Errors
+    /// - `EIndexOutOfRange`: If the specified index is out of range for removal.
     public(package) fun remove_entry<T>(treasury: &mut Treasury<T>, index: u64) {
         assert!(index < treasury.schedule.length(), EIndexOutOfRange);
         assert!(treasury.current_entry == 0 || index > treasury.current_entry, EIndexOutOfRange);
         treasury.schedule.remove(index);
     }
 
-    /// Mint coins according to the schedule.
+    /// Mints new tokens according to the predefined schedule.
+    ///
+    /// This function allows to mint tokens in accordance with the established
+    /// minting schedule. It can be called anytime after the designated time in
+    /// the schedule, except for the "zero mint," which can occur at any time
+    /// after contract deployment.
+    ///
+    /// ## Parameters:
+    /// - `treasury`: Mutable reference to the Treasury<T> managing the minting process.
+    /// - `clock`: Reference to the Clock, providing the current time context.
+    ///
+    /// ## Errors
+    /// - `EMintLimitReached`: If the minting has reached its limit or if the schedule is not set.
+    /// - `EInappropriateTimeToMint`: If the mint attempt occurs outside the allowable schedule window.
     public(package) fun mint<T>(treasury: &mut Treasury<T>, clock: &Clock, ctx: &mut TxContext) {
         assert!(treasury.schedule.length() > 0, EMintLimitReached);
         assert!(treasury.current_entry < treasury.schedule.length(), EMintLimitReached);

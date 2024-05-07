@@ -102,7 +102,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `amounts`: Vector of amounts corresponding to each address in the pools.
     /// - `number_of_epochs`: Number of CHIRP epochs the entry will remain active.
     /// - `epoch_duration_ms`: Duration of each epoch in milliseconds.
-    /// - `timeshift_ms`: Initial time shift for the epoch start in milliseconds.
+    /// - `timeshift_ms`: Initial time shift for the entry start in milliseconds.
     ///
     /// ## Errors
     /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
@@ -138,7 +138,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `amounts`: Vector of amounts corresponding to each address in the pools.
     /// - `number_of_epochs`: Number of CHIRP epochs the entry will be active.
     /// - `epoch_duration_ms`: Duration of each epoch in milliseconds.
-    /// - `timeshift_ms`: Initial time shift for the epoch start in milliseconds.
+    /// - `timeshift_ms`: Initial time shift for the entry start in milliseconds.
     ///
     /// ## Errors
     /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
