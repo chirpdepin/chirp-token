@@ -26,6 +26,8 @@ module blhnsuicntrtctkn::chirp {
     const EWrongVersion: u64 = 2;
 
     // === Constants ===
+    /// Maximum supply of CHIRP tokens.
+    const COIN_MAX_SUPPLY: u64 = 3_000_162_900_000_000_000;
     /// Number of decimal places for CHIRP coins, where 10 implies
     /// 10,000,000,000 smallest units (cents) per CHIRP token.
     const COIN_DECIMALS: u8 = 10;
@@ -35,10 +37,10 @@ module blhnsuicntrtctkn::chirp {
     const COIN_NAME: vector<u8> = b"Chirp Token";
     /// Symbol for the CHIRP token, aligned with ISO 4217 formatting.
     const COIN_SYMBOL: vector<u8> = b"CHIRP";
-    /// Current version of the smart contract package.
-    const PACKAGE_VERSION: u64 = 1;
     /// Coin icon
     const COIN_ICON: vector<u8> = b"https://storage.googleapis.com/chirp-blhn-assets/images/CHIRP_White_OBG.svg";
+    /// Current version of the smart contract package.
+    const PACKAGE_VERSION: u64 = 1;
 
     // === Structs ===
     /// The one-time witness for the module
@@ -64,7 +66,7 @@ module blhnsuicntrtctkn::chirp {
             ctx,
         );
         transfer::public_freeze_object(metadata);
-        let admin_cap = treasury::create(coin_treasury_cap, schedule::default(), ctx);
+        let admin_cap = treasury::create(coin_treasury_cap, COIN_MAX_SUPPLY, schedule::default(), ctx);
         transfer::public_transfer(admin_cap, ctx.sender());
     }
 
