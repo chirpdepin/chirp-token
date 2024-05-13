@@ -69,6 +69,8 @@ module blhnsuicntrtctkn::treasury {
     public struct Treasury<phantom T> has key, store{
         /// The unique identifier of the treasury.
         id: UID,
+        /// Total supply of the token that can be minted.
+        max_supply: u64,
         /// List of schedule entries for managing token minting.
         schedule: vector<ScheduleEntry<T>>,
         /// Capability object that grants the treasury the authority to mint
@@ -93,11 +95,13 @@ module blhnsuicntrtctkn::treasury {
     /// - `schedule`: List of ScheduleEntry objects defining the minting schedule.
     public(package) fun create<T>(
         cap: TreasuryCap<T>,
+        max_supply: u64,
         schedule: vector<ScheduleEntry<T>>,
         ctx: &mut TxContext,
     ): ScheduleAdminCap {
         transfer::share_object(Treasury {
             id: object::new(ctx),
+            max_supply: max_supply,
             schedule: schedule,
             cap: cap,
             current_entry: 0,
@@ -229,7 +233,7 @@ module blhnsuicntrtctkn::treasury {
         assert!(treasury.schedule.length() > 0, EMintLimitReached);
         assert!(treasury.current_entry < treasury.schedule.length(), EMintLimitReached);
         let entry = &mut treasury.schedule[treasury.current_entry];
-        let next_stage_ms = mint_entry(entry, &mut treasury.cap, clock, ctx);
+        let next_stage_ms = mint_entry(entry, treasury.max_supply, &mut treasury.cap, clock, ctx);
         if (next_stage_ms.is_some()) {
             treasury.current_entry = treasury.current_entry + 1;
             if (treasury.current_entry < treasury.schedule.length()) {
@@ -252,6 +256,7 @@ module blhnsuicntrtctkn::treasury {
     /// the next stage after all epochs are minted.
     fun mint_entry<T>(
         entry: &mut ScheduleEntry<T>,
+        max_supply: u64,
         cap: &mut TreasuryCap<T>,
         clock: &Clock,
         ctx: &mut TxContext,
@@ -265,6 +270,7 @@ module blhnsuicntrtctkn::treasury {
         while (k < entry.stage.pools.length()) {
             let pool = entry.stage.pools[k];
             let amount = entry.stage.amounts[k];
+            assert!(amount <= (max_supply - coin::total_supply(cap)), EMintLimitReached);
             coin::mint_and_transfer(cap, amount, pool, ctx);
             k = k + 1;
         };
@@ -727,6 +733,27 @@ module blhnsuicntrtctkn::treasury_tests {
         scenario.end();
     }
 
+    #[test]
+    #[expected_failure(abort_code = EMintLimitReached)]
+    fun test_mint_fails_when_max_supply_is_reached() {
+        let mut scenario = setup_scenario(vector[
+            treasury::create_entry(vector[TEST_POOL1], vector[5_000], 1, 1000, 0),
+            treasury::create_entry(vector[TEST_POOL1], vector[5_001], 1, 1000, 0),
+        ]);
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            let mut clock: Clock = scenario.take_shared();
+            treasury.mint(&clock, scenario.ctx());
+            clock.increment_for_testing(1000);
+            // The minting should fail because the max supply is reached.
+            treasury.mint(&clock, scenario.ctx());
+            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(clock);
+        };
+        scenario.end();
+    }
+
 
     /// Sets up a scenario with the given minting schedule.
     fun setup_scenario(schedule: vector<ScheduleEntry<TREASURY_TESTS>>): Scenario {
@@ -735,7 +762,7 @@ module blhnsuicntrtctkn::treasury_tests {
             let otw = test_utils::create_one_time_witness<TREASURY_TESTS>();
             let (cap, metadata) = coin::create_currency(otw, 10, b"TST", b"Test Token", b"Test Token", option::none(), scenario.ctx());
             transfer::public_freeze_object(metadata);
-            transfer::public_transfer(treasury::create(cap, schedule, scenario.ctx()), PUBLISHER);
+            transfer::public_transfer(treasury::create(cap, 10_000, schedule, scenario.ctx()), PUBLISHER);
             clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
         };
         scenario
