@@ -132,8 +132,7 @@ module blhnsuicntrtctkn::schedule {
 
 #[test_only]
 module blhnsuicntrtctkn::schedule_tests {
-    use blhnsuicntrtctkn::chirp::{Self, CHIRP};
-    use blhnsuicntrtctkn::treasury::{Treasury};
+    use blhnsuicntrtctkn::chirp::{Self, CHIRP, Vault};
     use blhnsuicntrtctkn::schedule::{Self};
     use sui::clock::{Self, Clock};
     use sui::coin::{Self};
@@ -152,15 +151,15 @@ module blhnsuicntrtctkn::schedule_tests {
         };
         scenario.next_tx(RANDOM_PERSON);
         {
-            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let mut vault: Vault = scenario.take_shared();
             let mut clock: Clock = scenario.take_shared();
 
             // First mint might happen immediately
-            chirp::mint(&mut treasury, &clock, scenario.ctx());
+            chirp::mint(&mut vault, &clock, scenario.ctx());
             // The first mint's epoch duration is 1 millisecond
             clock.increment_for_testing(1);
 
-            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(vault);
             test_scenario::return_shared(clock);
         };
         scenario.next_tx(RANDOM_PERSON);
@@ -350,16 +349,16 @@ module blhnsuicntrtctkn::schedule_tests {
     fun batch_mint(mut number_of_epochs: u64, scenario: &mut test_scenario::Scenario) {
         test_scenario::next_tx(scenario, RANDOM_PERSON);
         {
-            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let mut vault: Vault = scenario.take_shared();
             let mut clock: Clock = scenario.take_shared();
 
             while (number_of_epochs > 0) {
-                chirp::mint(&mut treasury, &clock, scenario.ctx());
+                chirp::mint(&mut vault, &clock, scenario.ctx());
                 clock.increment_for_testing(172800000);
                 number_of_epochs = number_of_epochs - 1;
             };
 
-            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(vault);
             test_scenario::return_shared(clock);
         };
     }

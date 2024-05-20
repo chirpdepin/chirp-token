@@ -23,17 +23,6 @@ module blhnsuicntrtctkn::treasury {
     const EIndexOutOfRange: u64 = 3;
 
     // === Structs ===
-    /// Administrative capability for modifying the minting schedule.
-    ///
-    /// This struct acts as an authorization object, enabling its holder to
-    /// perform authorized actions such as modifying the minting schedule. It
-    /// ensures that schedule modifications are restricted to authorized
-    /// personnel only.
-    public struct ScheduleAdminCap has key, store {
-        /// Unique identifier for the administrative capability.
-        id: UID,
-    }
-
     /// Represents a specific phase within the minting schedule.
     public struct Stage<phantom T> has store, copy, drop {
         /// Time shift in milliseconds from the end of the previous stage,
@@ -78,8 +67,6 @@ module blhnsuicntrtctkn::treasury {
         cap: TreasuryCap<T>,
         /// Index of the active schedule entry.
         current_entry: u64,
-        /// Version of the treasury's configuration and logic.
-        version: u64,
     }
 
     // === Public package functions ===
@@ -98,17 +85,13 @@ module blhnsuicntrtctkn::treasury {
         max_supply: u64,
         schedule: vector<ScheduleEntry<T>>,
         ctx: &mut TxContext,
-    ): ScheduleAdminCap {
-        transfer::share_object(Treasury {
+    ): Treasury<T> {
+        Treasury {
             id: object::new(ctx),
             max_supply: max_supply,
             schedule: schedule,
             cap: cap,
             current_entry: 0,
-            version: 1,
-        });
-        ScheduleAdminCap {
-            id: object::new(ctx),
         }
     }
 
@@ -243,11 +226,6 @@ module blhnsuicntrtctkn::treasury {
                 next_entry.start_time_ms = option::some(next_start_time_ms + next_timeshift_ms);
             }
         }
-    }
-
-    /// Returns the treasury version.
-    public(package) fun version<T>(treasury: &Treasury<T>): u64 {
-        treasury.version
     }
 
     // === Internal functions ===
@@ -762,7 +740,7 @@ module blhnsuicntrtctkn::treasury_tests {
             let otw = test_utils::create_one_time_witness<TREASURY_TESTS>();
             let (cap, metadata) = coin::create_currency(otw, 10, b"TST", b"Test Token", b"Test Token", option::none(), scenario.ctx());
             transfer::public_freeze_object(metadata);
-            transfer::public_transfer(treasury::create(cap, 10_000, schedule, scenario.ctx()), PUBLISHER);
+            transfer::public_share_object(treasury::create(cap, 10_000, schedule, scenario.ctx()));
             clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
         };
         scenario

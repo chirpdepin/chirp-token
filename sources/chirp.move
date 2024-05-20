@@ -11,7 +11,8 @@
 module blhnsuicntrtctkn::chirp {
     // === Imports ===
     use blhnsuicntrtctkn::schedule::{Self};
-    use blhnsuicntrtctkn::treasury::{Self, ScheduleAdminCap, Treasury};
+    use blhnsuicntrtctkn::treasury::{Self, Treasury};
+    use sui::object_bag::{Self, ObjectBag};
     use sui::clock::{Clock};
     use sui::coin::{Self};
     use sui::url;
@@ -39,12 +40,33 @@ module blhnsuicntrtctkn::chirp {
     const COIN_SYMBOL: vector<u8> = b"CHIRP";
     /// Coin icon
     const COIN_ICON: vector<u8> = b"https://storage.googleapis.com/chirp-blhn-assets/images/CHIRP_White_OBG.svg";
-    /// Current version of the smart contract package.
-    const PACKAGE_VERSION: u64 = 1;
+    /// Current version of the vault.
+    const VAULT_VERSION: u64 = 1;
 
     // === Structs ===
     /// The one-time witness for the module
     public struct CHIRP has drop {}
+
+    /// Administrative capability for modifying the minting schedule.
+    ///
+    /// This struct acts as an authorization object, enabling its holder to
+    /// perform authorized actions such as modifying the minting schedule. It
+    /// ensures that schedule modifications are restricted to authorized
+    /// personnel only.
+    public struct ScheduleAdminCap has key, store {
+        /// Unique identifier for the administrative capability.
+        id: UID,
+    }
+
+    /// The central registry for all contract components.
+    public struct Vault has key, store {
+        /// The unique identifier of the vault.
+        id: UID,
+        /// The registry of all contract components.
+        registry: ObjectBag,
+        /// Version of the vault.
+        version: u64,
+    }
 
     // === Functions ===
     /// Initialize the CHIRP token on the blockchain and set up the minting
@@ -56,7 +78,7 @@ module blhnsuicntrtctkn::chirp {
     /// the sender of the transaction that allows them to manage the minting
     /// schedule.
     fun init(otw: CHIRP, ctx: &mut TxContext) {
-        let (coin_treasury_cap, metadata) = coin::create_currency(
+        let (treasury_cap, metadata) = coin::create_currency(
             otw,
             COIN_DECIMALS,
             COIN_SYMBOL,
@@ -66,8 +88,17 @@ module blhnsuicntrtctkn::chirp {
             ctx,
         );
         transfer::public_freeze_object(metadata);
-        let admin_cap = treasury::create(coin_treasury_cap, COIN_MAX_SUPPLY, schedule::default(), ctx);
-        transfer::public_transfer(admin_cap, ctx.sender());
+
+        let mut vault = Vault {
+            id: object::new(ctx),
+            registry: object_bag::new(ctx),
+            version: VAULT_VERSION,
+        };
+
+        vault.registry.add(b"treasury", treasury::create(treasury_cap, COIN_MAX_SUPPLY, schedule::default(), ctx));
+        transfer::transfer(ScheduleAdminCap{id:object::new(ctx)}, ctx.sender());
+
+        transfer::share_object(vault);
     }
 
     /// Mints new CHIRP tokens according to the predefined schedule.
@@ -78,19 +109,20 @@ module blhnsuicntrtctkn::chirp {
     /// except for the "zero mint," which can occur at any time after contract deployment.
     ///
     /// ## Parameters:
-    /// - `treasury`: Mutable reference to the Treasury<CHIRP> managing the minting process.
+    /// - `vault`: Mutable reference to the Vault managing the minting process.
     /// - `clock`: Reference to the Clock, providing the current time context.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
+    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
     /// - `EMintLimitReached`: If the minting has reached its limit or if the schedule is not set.
     /// - `EInappropriateTimeToMint`: If the mint attempt occurs outside the allowable schedule window.
-    public fun mint(treasury: &mut Treasury<CHIRP>, clock: &Clock, ctx: &mut TxContext) {
-        assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
-        treasury::mint(treasury, clock, ctx);
+    public fun mint(vault: &mut Vault, clock: &Clock, ctx: &mut TxContext) {
+        assert!(vault.version == VAULT_VERSION, EWrongVersion);
+        let treasury: &mut Treasury<CHIRP> = &mut vault.registry[b"treasury"]; 
+        treasury.mint(clock, ctx);
     }
 
-    /// Replaces a schedule entry in the `Treasury` of CHIRP tokens.
+    /// Replaces a schedule entry in the `Vault` of CHIRP tokens.
     ///
     /// This function updates the currently active schedule entry or subsequent
     /// entries. If the contract has been deployed and no minting has occurred,
@@ -98,7 +130,7 @@ module blhnsuicntrtctkn::chirp {
     ///
     /// ## Parameters:
     /// - `_`: Reference to the ScheduleAdminCap, ensuring execution by authorized users only.
-    /// - `treasury`: Mutable reference to the Treasury<CHIRP> managing the minting schedule.
+    /// - `vault`: Mutable reference to the Vault managing the minting schedule.
     /// - `index`: Index of the schedule entry to update.
     /// - `pools`: Vector of addresses for the distribution pools.
     /// - `amounts`: Vector of amounts corresponding to each address in the pools.
@@ -107,12 +139,12 @@ module blhnsuicntrtctkn::chirp {
     /// - `timeshift_ms`: Initial time shift for the entry start in milliseconds.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
+    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
     /// - `EIndexOutOfRange`: If specified index is out of range or entry is irreplaceable.
     /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
     public fun set_entry(
         _: &ScheduleAdminCap,
-        treasury: &mut Treasury<CHIRP>,
+        vault: &mut Vault,
         index: u64,
         pools: vector<address>,
         amounts: vector<u64>,
@@ -120,12 +152,13 @@ module blhnsuicntrtctkn::chirp {
         epoch_duration_ms: u64,
         timeshift_ms: u64,
     ) {
-        assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
+        assert!(vault.version == VAULT_VERSION, EWrongVersion);
         let entry = treasury::create_entry<CHIRP>(pools, amounts, number_of_epochs, epoch_duration_ms, timeshift_ms);
+        let treasury: &mut Treasury<CHIRP> = &mut vault.registry[b"treasury"]; 
         treasury.set_entry(index, entry)
     }
 
-    /// Inserts a new schedule entry before the specified index in the `Treasury` of CHIRP tokens.
+    /// Inserts a new schedule entry before the specified index in the `Vault` of CHIRP tokens.
     ///
     /// Authorized users with the ScheduleAdminCap can insert a new entry at
     /// any position following the current active entry. If no minting has
@@ -134,7 +167,7 @@ module blhnsuicntrtctkn::chirp {
     ///
     /// ## Parameters:
     /// - `_`: Reference to the ScheduleAdminCap, ensuring execution by authorized users only.
-    /// - `treasury`: Mutable reference to the Treasury<CHIRP> managing the minting schedule.
+    /// - `vault`: Mutable reference to the Vault managing the minting schedule.
     /// - `index`: The position at which the new entry will be inserted.
     /// - `pools`: Vector of addresses for the distribution pools.
     /// - `amounts`: Vector of amounts corresponding to each address in the pools.
@@ -143,12 +176,12 @@ module blhnsuicntrtctkn::chirp {
     /// - `timeshift_ms`: Initial time shift for the entry start in milliseconds.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
+    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
     /// - `EIndexOutOfRange`: If the specified index is out of range for insertion.
     /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
     public fun insert_entry(
         _: &ScheduleAdminCap,
-        treasury: &mut Treasury<CHIRP>,
+        vault: &mut Vault,
         index: u64,
         pools: vector<address>,
         amounts: vector<u64>,
@@ -156,12 +189,13 @@ module blhnsuicntrtctkn::chirp {
         epoch_duration_ms: u64,
         timeshift_ms: u64,
     ) {
-        assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
+        assert!(vault.version == VAULT_VERSION, EWrongVersion);
         let entry = treasury::create_entry<CHIRP>(pools, amounts, number_of_epochs, epoch_duration_ms, timeshift_ms);
+        let treasury: &mut Treasury<CHIRP> = &mut vault.registry[b"treasury"]; 
         treasury.insert_entry(index, entry)
     }
 
-    /// Removes a schedule entry at the specified index in the `Treasury` of CHIRP tokens.
+    /// Removes a schedule entry at the specified index in the `Vault` of CHIRP tokens.
     ///
     /// This function allows authorized users, holding the ScheduleAdminCap, to
     /// remove an existing entry from the minting schedule. The function can
@@ -171,14 +205,15 @@ module blhnsuicntrtctkn::chirp {
     ///
     /// ## Parameters:
     /// - `_`: Reference to the ScheduleAdminCap, ensuring execution by authorized users only.
-    /// - `treasury`: Mutable reference to the Treasury<CHIRP> managing the minting schedule.
+    /// - `vault`: Mutable reference to the Vault managing the minting schedule.
     /// - `index`: The position from which the entry will be removed.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the PACKAGE_VERSION.
+    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
     /// - `EIndexOutOfRange`: If the specified index is out of range for removal.
-    public fun remove_entry(_: &ScheduleAdminCap, treasury: &mut Treasury<CHIRP>, index: u64) {
-        assert!(treasury.version() == PACKAGE_VERSION, EWrongVersion);
+    public fun remove_entry(_: &ScheduleAdminCap, vault: &mut Vault, index: u64) {
+        assert!(vault.version == VAULT_VERSION, EWrongVersion);
+        let treasury: &mut Treasury<CHIRP> = &mut vault.registry[b"treasury"]; 
         treasury.remove_entry(index);
     }
 
@@ -195,8 +230,7 @@ module blhnsuicntrtctkn::chirp {
 
 #[test_only]
 module blhnsuicntrtctkn::chirp_tests {
-    use blhnsuicntrtctkn::chirp::{Self, CHIRP};
-    use blhnsuicntrtctkn::treasury::{ScheduleAdminCap, Treasury};
+    use blhnsuicntrtctkn::chirp::{Self, CHIRP, ScheduleAdminCap, Vault};
     use std::string;
     use sui::clock::{Self, Clock};
     use sui::coin::{Self};
@@ -233,15 +267,15 @@ module blhnsuicntrtctkn::chirp_tests {
         };
         scenario.next_tx(PUBLISHER);
         {
-            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let mut vault: Vault = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
             let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
 
             // Setting zero mint params
-            chirp::set_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
-            chirp::mint(&mut treasury, &clock, scenario.ctx());
+            chirp::set_entry(&cap, &mut vault, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
+            chirp::mint(&mut vault, &clock, scenario.ctx());
 
-            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(vault);
             test_scenario::return_shared(clock);
             test_scenario::return_to_sender(&scenario, cap);
         };
@@ -262,15 +296,15 @@ module blhnsuicntrtctkn::chirp_tests {
         };
         scenario.next_tx(PUBLISHER);
         {
-            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let mut vault: Vault = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
             let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
 
             // inserting new zero mint stage
-            chirp::insert_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
-            chirp::mint(&mut treasury, &clock, scenario.ctx());
+            chirp::insert_entry(&cap, &mut vault, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
+            chirp::mint(&mut vault, &clock, scenario.ctx());
 
-            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(vault);
             test_scenario::return_shared(clock);
             test_scenario::return_to_sender(&scenario, cap);
         };
@@ -291,19 +325,19 @@ module blhnsuicntrtctkn::chirp_tests {
         };
         scenario.next_tx(PUBLISHER);
         {
-            let mut treasury: Treasury<CHIRP> = scenario.take_shared();
+            let mut vault: Vault = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
             let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
 
-            chirp::insert_entry(&cap, &mut treasury, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
-            chirp::insert_entry(&cap, &mut treasury, 1, vector[PUBLISHER], vector[3117], 1, 1000, 0);
+            chirp::insert_entry(&cap, &mut vault, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
+            chirp::insert_entry(&cap, &mut vault, 1, vector[PUBLISHER], vector[3117], 1, 1000, 0);
             // removing first mint stage
-            chirp::remove_entry(&cap, &mut treasury, 0);
+            chirp::remove_entry(&cap, &mut vault, 0);
 
             // Should mint 3117 coins
-            chirp::mint(&mut treasury, &clock, scenario.ctx());
+            chirp::mint(&mut vault, &clock, scenario.ctx());
 
-            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(vault);
             test_scenario::return_shared(clock);
             test_scenario::return_to_sender(&scenario, cap);
         };
