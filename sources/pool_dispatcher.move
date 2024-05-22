@@ -50,6 +50,13 @@ module blhnsuicntrtctkn::pool_dispatcher {
         transfer::public_transfer(obj, pool);
     }
 
+    public(package) fun contains(
+        dispatcher: &PoolDispatcher,
+        name: vector<u8>,
+    ): bool {
+       dispatcher.pools.contains(name) 
+    }
+
     #[test_only]
     public fun add_address_pool(
         dispatcher: &mut PoolDispatcher,

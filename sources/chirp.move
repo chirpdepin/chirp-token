@@ -27,6 +27,9 @@ module blhnsuicntrtctkn::chirp {
     /// package version.
     const EWrongVersion: u64 = 2;
 
+    /// Error code used when an invalid pool is used in the schedule.
+    const EInvalidPool: u64 = 3;
+
     // === Constants ===
     /// Maximum supply of CHIRP tokens.
     const COIN_MAX_SUPPLY: u64 = 3_000_000_000_000_000_000;
@@ -157,6 +160,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
     /// - `EIndexOutOfRange`: If specified index is out of range or entry is irreplaceable.
     /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
+    /// - `EInvalidPool`: If the pools specified in the entry are not valid.
     public fun set_entry(
         _: &ScheduleAdminCap,
         vault: &mut Vault,
@@ -168,6 +172,14 @@ module blhnsuicntrtctkn::chirp {
         timeshift_ms: u64,
     ) {
         assert!(vault.version == VAULT_VERSION, EWrongVersion);
+        {
+            let dispatcher: &PoolDispatcher = &vault.registry[b"pool_dispatcher"];
+            let mut i = 0;
+            while(i < pools.length()) {
+                assert!(dispatcher.contains(pools[i]), EInvalidPool);
+                i = i + 1;
+            };
+        };
         let entry = treasury::create_entry<CHIRP>(pools, amounts, number_of_epochs, epoch_duration_ms, timeshift_ms);
         let treasury: &mut Treasury<CHIRP> = &mut vault.registry[b"treasury"]; 
         treasury.set_entry(index, entry)
@@ -194,6 +206,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
     /// - `EIndexOutOfRange`: If the specified index is out of range for insertion.
     /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
+    /// - `EInvalidPool`: If the pools specified in the entry are not valid.
     public fun insert_entry(
         _: &ScheduleAdminCap,
         vault: &mut Vault,
@@ -205,6 +218,14 @@ module blhnsuicntrtctkn::chirp {
         timeshift_ms: u64,
     ) {
         assert!(vault.version == VAULT_VERSION, EWrongVersion);
+        {
+            let dispatcher: &PoolDispatcher = &vault.registry[b"pool_dispatcher"];
+            let mut i = 0;
+            while(i < pools.length()) {
+                assert!(dispatcher.contains(pools[i]), EInvalidPool);
+                i = i + 1;
+            };
+        };
         let entry = treasury::create_entry<CHIRP>(pools, amounts, number_of_epochs, epoch_duration_ms, timeshift_ms);
         let treasury: &mut Treasury<CHIRP> = &mut vault.registry[b"treasury"]; 
         treasury.insert_entry(index, entry)
@@ -257,7 +278,7 @@ module blhnsuicntrtctkn::chirp {
 
 #[test_only]
 module blhnsuicntrtctkn::chirp_tests {
-    use blhnsuicntrtctkn::chirp::{Self, CHIRP, ScheduleAdminCap, Vault};
+    use blhnsuicntrtctkn::chirp::{Self, CHIRP, EInvalidPool, ScheduleAdminCap, Vault};
     use std::string;
     use sui::clock::{Self, Clock};
     use sui::coin::{Self};
@@ -320,6 +341,29 @@ module blhnsuicntrtctkn::chirp_tests {
     }
 
     #[test]
+    #[expected_failure(abort_code = EInvalidPool)]
+    fun test_set_entry_disallows_to_specify_non_existent_pools()
+    {
+        let mut scenario = test_scenario::begin(PUBLISHER);
+        {
+            chirp::init_for_testing(scenario.ctx());
+            clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+
+            // Fails because the pool does not exist
+            chirp::set_entry(&cap, &mut vault, 0, vector[b"non_existent_pool"], vector[1000], 1, 1000, 0);
+
+            test_scenario::return_shared(vault);
+            test_scenario::return_to_sender(&scenario, cap);
+        };
+        scenario.end();
+    }
+
+    #[test]
     fun test_insert_entry_allows_add_new_entries_into_default_schedule()
     {
         let mut scenario = test_scenario::begin(PUBLISHER);
@@ -350,6 +394,27 @@ module blhnsuicntrtctkn::chirp_tests {
         scenario.next_tx(PUBLISHER);
         {
             assert_eq_chirp_coin(PUBLISHER, 1000, &scenario);
+        };
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = EInvalidPool)]
+    fun test_insert_entry_disallows_to_specify_non_existent_pools()
+    {
+        let mut scenario = test_scenario::begin(PUBLISHER);
+        {
+            chirp::init_for_testing(scenario.ctx());
+            clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+            // Fails because the pool does not exist
+            chirp::insert_entry(&cap, &mut vault, 0, vector[b"non_existent_pool"], vector[1000], 1, 1000, 0);
+            test_scenario::return_shared(vault);
+            test_scenario::return_to_sender(&scenario, cap);
         };
         scenario.end();
     }
