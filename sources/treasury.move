@@ -6,7 +6,7 @@
 /// complemented by an administration capability enabled via the ScheduleAdminCap.
 module blhnsuicntrtctkn::treasury {
     // === Imports ===
-    use sui::coin::{Self, TreasuryCap};
+    use sui::coin::{Self, Coin, TreasuryCap};
     use sui::clock::{Clock};
 
     // === Errors ===
@@ -34,7 +34,7 @@ module blhnsuicntrtctkn::treasury {
         /// Duration of each epoch within this stage in milliseconds.
         epoch_duration_ms: u64,
         /// Addresses of the pools where the minted tokens are distributed.
-        pools: vector<address>,
+        pools: vector<vector<u8>>,
         /// Specific amounts of tokens to mint per pool per epoch.
         amounts: vector<u64>,
     }
@@ -107,7 +107,7 @@ module blhnsuicntrtctkn::treasury {
     /// ## Errors:
     /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
     public(package) fun create_entry<T>(
-        pools: vector<address>,
+        pools: vector<vector<u8>>,
         amounts: vector<u64>,
         number_of_epochs: u64,
         epoch_duration_ms: u64,
@@ -212,20 +212,21 @@ module blhnsuicntrtctkn::treasury {
     /// ## Errors
     /// - `EMintLimitReached`: If the minting has reached its limit or if the schedule is not set.
     /// - `EInappropriateTimeToMint`: If the mint attempt occurs outside the allowable schedule window.
-    public(package) fun mint<T>(treasury: &mut Treasury<T>, clock: &Clock, ctx: &mut TxContext) {
+    public(package) fun mint<T>(treasury: &mut Treasury<T>, clock: &Clock, ctx: &mut TxContext): (vector<vector<u8>>, vector<Coin<T>>){
         assert!(treasury.schedule.length() > 0, EMintLimitReached);
         assert!(treasury.current_entry < treasury.schedule.length(), EMintLimitReached);
         let entry = &mut treasury.schedule[treasury.current_entry];
-        let next_stage_ms = mint_entry(entry, treasury.max_supply, &mut treasury.cap, clock, ctx);
-        if (next_stage_ms.is_some()) {
+        let (pools, coins) = mint_entry(entry, treasury.max_supply, &mut treasury.cap, clock, ctx);
+        if (entry.current_epoch == entry.stage.number_of_epochs) {
+            let next_stage_ms = get_entry_mint_time(entry);
             treasury.current_entry = treasury.current_entry + 1;
             if (treasury.current_entry < treasury.schedule.length()) {
                 let next_entry = &mut treasury.schedule[treasury.current_entry];
-                let next_start_time_ms = next_stage_ms.get_with_default(0);
                 let next_timeshift_ms = next_entry.stage.timeshift_ms;
-                next_entry.start_time_ms = option::some(next_start_time_ms + next_timeshift_ms);
+                next_entry.start_time_ms = option::some(next_stage_ms + next_timeshift_ms);
             }
-        }
+        };
+        return (pools, coins)
     }
 
     // === Internal functions ===
@@ -238,25 +239,22 @@ module blhnsuicntrtctkn::treasury {
         cap: &mut TreasuryCap<T>,
         clock: &Clock,
         ctx: &mut TxContext,
-    ): Option<u64> {
+    ): (vector<vector<u8>>, vector<Coin<T>>) {
         if (entry.start_time_ms.is_none()) {
             entry.start_time_ms = option::some(clock.timestamp_ms());
         };
         let mint_time = get_entry_mint_time(entry);
         assert!(clock.timestamp_ms() >= mint_time, EInappropriateTimeToMint);
         let mut k = 0;
+        let mut coins: vector<Coin<T>> = vector[];
         while (k < entry.stage.pools.length()) {
-            let pool = entry.stage.pools[k];
             let amount = entry.stage.amounts[k];
             assert!(amount <= (max_supply - coin::total_supply(cap)), EMintLimitReached);
-            coin::mint_and_transfer(cap, amount, pool, ctx);
+            coins.push_back(coin::mint(cap, amount, ctx));
             k = k + 1;
         };
         entry.current_epoch = entry.current_epoch + 1;
-        if (entry.current_epoch == entry.stage.number_of_epochs) {
-            return option::some(get_entry_mint_time(entry))
-        };
-        return option::none()
+        return (entry.stage.pools, coins)
    }
 
     /// Returns the mint time of the entry
@@ -285,8 +283,8 @@ module blhnsuicntrtctkn::treasury_tests {
     use sui::test_utils;
 
     const PUBLISHER: address = @0xA;
-    const TEST_POOL1: address = @0xBBB;
-    const TEST_POOL2: address = @0xCCC;
+    const TEST_POOL1: vector<u8> = b"test_pool1";
+    const TEST_POOL2: vector<u8> = b"test_pool2";
 
     public struct TREASURY_TESTS has drop {}
 
@@ -294,27 +292,27 @@ module blhnsuicntrtctkn::treasury_tests {
     #[expected_failure(abort_code = EInvalidScheduleEntry)]
     fun test_create_entry_with_invalid_targets() {
         // The number of elements in pools does not match the number of elements in amounts.
-        treasury::create_entry<TREASURY_TESTS>(vector[@0xBBB], vector[], 10, 3600, 0);
+        treasury::create_entry<TREASURY_TESTS>(vector[TEST_POOL1], vector[], 10, 3600, 0);
     }
 
     #[test]
     #[expected_failure(abort_code = EInvalidScheduleEntry)]
     fun test_create_entry_with_invalid_number_of_epochs() {
         // The number of epochs is zero.
-        treasury::create_entry<TREASURY_TESTS>(vector[@0xBBB], vector[100], 0, 3600, 0);
+        treasury::create_entry<TREASURY_TESTS>(vector[TEST_POOL1], vector[100], 0, 3600, 0);
     }
 
     #[test]
     #[expected_failure(abort_code = EInvalidScheduleEntry)]
     fun test_create_entry_with_invalid_epoch_duration() {
         // The epoch duration is zero.
-        treasury::create_entry<TREASURY_TESTS>(vector[@0xBBB], vector[100], 10, 0, 0);
+        treasury::create_entry<TREASURY_TESTS>(vector[TEST_POOL1], vector[100], 10, 0, 0);
     }
 
     #[test]
     fun test_create_entry_returns_valid_entry() {
         // Do not errors because the entry is valid.
-        treasury::create_entry<TREASURY_TESTS>(vector[@0xBBB], vector[100], 10, 3600, 0);
+        treasury::create_entry<TREASURY_TESTS>(vector[TEST_POOL1], vector[100], 10, 3600, 0);
     }
     
     #[test]
@@ -324,7 +322,7 @@ module blhnsuicntrtctkn::treasury_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
-            treasury.set_entry(0, treasury::create_entry(vector[@0xBBB], vector[100], 10, 3600, 0));
+            treasury.set_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[100], 10, 3600, 0));
             test_scenario::return_shared(treasury);
         };
         scenario.end();
@@ -340,7 +338,8 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
         };
@@ -365,13 +364,12 @@ module blhnsuicntrtctkn::treasury_tests {
             let clock: Clock = scenario.take_shared();
             treasury.set_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[1337], 1, 3600, 0));
             // Should mint 3117 coins
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            assert_eq_pools_and_coins(&pools, &coins, vector[TEST_POOL1], vector[1337]);
+            destroy_pools_and_coins(pools, coins);
+
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
-        };
-        scenario.next_tx(PUBLISHER);
-        {
-            assert_eq_chirp_coin(TEST_POOL1, 1337, &scenario);
         };
         scenario.end();
     }
@@ -386,7 +384,9 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
+
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
         };
@@ -424,7 +424,8 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
 
             // Fails because the index is before current stage
             treasury.insert_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 3600, 0));
@@ -446,14 +447,12 @@ module blhnsuicntrtctkn::treasury_tests {
             let clock: Clock = scenario.take_shared();
             // Do not errors because the schedule was not started yet.
             treasury.insert_entry(0, treasury::create_entry(vector[TEST_POOL1], vector[200], 1, 3600, 0));
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            assert_eq_pools_and_coins(&pools, &coins, vector[TEST_POOL1], vector[200]);
+            destroy_pools_and_coins(pools, coins);
 
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
-        };
-        scenario.next_tx(PUBLISHER);
-        {
-            assert_eq_chirp_coin(TEST_POOL1, 200, &scenario);
         };
         scenario.end();
     }
@@ -466,30 +465,21 @@ module blhnsuicntrtctkn::treasury_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
-            let clock: Clock = scenario.take_shared();
+            let mut clock: Clock = scenario.take_shared();
 
             // Do not errors because the index is at the end of the schedule.
             treasury.insert_entry(1, treasury::create_entry(vector[TEST_POOL1], vector[200], 1, 3600, 0));
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            assert_eq_pools_and_coins(&pools, &coins, vector[TEST_POOL1], vector[100]);
+            destroy_pools_and_coins(pools, coins);
 
-            test_scenario::return_shared(treasury);
-            test_scenario::return_shared(clock);
-        };
-        scenario.next_tx(PUBLISHER);
-        {
-            assert_eq_chirp_coin(TEST_POOL1, 100, &scenario);
-
-            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
-            let mut clock: Clock = scenario.take_shared();
             clock.increment_for_testing(3600);
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            assert_eq_pools_and_coins(&pools, &coins, vector[TEST_POOL1], vector[200]);
+            destroy_pools_and_coins(pools, coins);
+
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
-        };
-        scenario.next_tx(PUBLISHER);
-        {
-            // The total amount of coins should be 100+200=300
-            assert_eq_chirp_coin(TEST_POOL1, 300, &scenario);
         };
         scenario.end();
     }
@@ -518,7 +508,8 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
             // Fails because the stage was already minted
             treasury.remove_entry(0);
 
@@ -552,7 +543,8 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
         };
@@ -568,14 +560,11 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            assert_eq_pools_and_coins(&pools, &coins, vector[TEST_POOL1, TEST_POOL2], vector[100, 200]);
+            destroy_pools_and_coins(pools, coins);
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
-        };
-        scenario.next_tx(PUBLISHER);
-        {
-            assert_eq_chirp_coin(TEST_POOL1, 100, &scenario);
-            assert_eq_chirp_coin(TEST_POOL2, 200, &scenario);
         };
         scenario.end();
     }
@@ -591,9 +580,11 @@ module blhnsuicntrtctkn::treasury_tests {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
 
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
             // The minting should fail because the minting time has not come yet.
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
 
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
@@ -614,25 +605,16 @@ module blhnsuicntrtctkn::treasury_tests {
             let mut clock: Clock = scenario.take_shared();
 
             // The minting for the first epoch should succeed.
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
             clock.increment_for_testing(1000);
             // The minting for the second epoch should succeed.
-            treasury.mint(&clock, scenario.ctx());
-
-            test_scenario::return_shared(treasury);
-            test_scenario::return_shared(clock);
-        };
-        scenario.next_tx(PUBLISHER);
-        {
-            assert_eq_chirp_coin(TEST_POOL1, 200, &scenario);
-        };
-        scenario.next_tx(PUBLISHER);
-        {
-            let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
-            let clock: Clock = scenario.take_shared();
-
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
+            clock.increment_for_testing(1000);
             // The minting should fail because the schedule has ended.
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
 
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
@@ -642,7 +624,7 @@ module blhnsuicntrtctkn::treasury_tests {
 
     #[test]
     // The next stage must be initiated after the minting stage is complete
-    fun test_mint_starts_then_next_stage() {
+    fun test_mint_starts_the_next_stage() {
         let mut scenario = setup_scenario(vector[
             treasury::create_entry(vector[TEST_POOL1], vector[100], 1, 1000, 0),
             treasury::create_entry(vector[TEST_POOL2], vector[200], 1, 1000, 0),
@@ -652,17 +634,17 @@ module blhnsuicntrtctkn::treasury_tests {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let mut clock: Clock = scenario.take_shared();
             // The minting for the first epoch of first stage should succeed.
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             clock.increment_for_testing(1000);
+            assert_eq_pools_and_coins(&pools, &coins, vector[TEST_POOL1], vector[100]);
+            destroy_pools_and_coins(pools, coins);
             // The minting for the first epoch of the second stage should succeed.
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            assert_eq_pools_and_coins(&pools, &coins, vector[TEST_POOL2], vector[200]);
+            destroy_pools_and_coins(pools, coins);
+
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
-        };
-        scenario.next_tx(PUBLISHER);
-        {
-            assert_eq_chirp_coin(TEST_POOL1, 100, &scenario);
-            assert_eq_chirp_coin(TEST_POOL2, 200, &scenario);
         };
         scenario.end();
     }
@@ -679,9 +661,12 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
             // Minting must not succeed until at least 1000 ms have passed since the last epoch of the initial stage.
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
+
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
         };
@@ -701,10 +686,12 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let mut clock: Clock = scenario.take_shared();
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
             clock.increment_for_testing(1000);
             // Minting must not succeed because the next stage has additional time shift.
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
         };
@@ -722,10 +709,13 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let mut clock: Clock = scenario.take_shared();
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
             clock.increment_for_testing(1000);
             // The minting should fail because the max supply is reached.
-            treasury.mint(&clock, scenario.ctx());
+            let (pools, coins) = treasury.mint(&clock, scenario.ctx());
+            destroy_pools_and_coins(pools, coins);
+
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
         };
@@ -746,22 +736,36 @@ module blhnsuicntrtctkn::treasury_tests {
         scenario
     }
 
-    /// Asserts that the value of the CHIRP coin held by the owner is equal to the expected value.
-    fun assert_eq_chirp_coin(owner: address, expected_value: u64, scenario: &test_scenario::Scenario) {
-        test_utils::assert_eq(total_coins(owner, scenario), expected_value);
-    }
-
-    /// Returns the total value of the test coins held by the owner.
-    fun total_coins(owner: address, scenario: &test_scenario::Scenario): u64 {
-        let coin_ids = test_scenario::ids_for_address<coin::Coin<TREASURY_TESTS>>(owner);
+    /// Asserts that the pools and coins are equal to the expected values.
+    fun assert_eq_pools_and_coins(
+        pools: &vector<vector<u8>>,
+        coins: &vector<coin::Coin<TREASURY_TESTS>>,
+        expected_pools: vector<vector<u8>>,
+        expected_coins: vector<u64>,
+    ) {
+        test_utils::assert_eq(pools.length(), expected_pools.length());
+        test_utils::assert_eq(coins.length(), expected_coins.length());
         let mut i = 0;
-        let mut total = 0;
-        while (i < coin_ids.length()) {
-            let coin = test_scenario::take_from_address_by_id<coin::Coin<TREASURY_TESTS>>(scenario, owner, coin_ids[i]);
-            total = total + coin::value(&coin);
-            test_scenario::return_to_address<coin::Coin<TREASURY_TESTS>>(owner, coin);
+        while (i < pools.length()) {
+            test_utils::assert_eq(pools[i], expected_pools[i]);
+            test_utils::assert_eq(coin::value(&coins[i]), expected_coins[i]);
             i = i + 1;
+        }
+    }
+    
+    /// Destroys the pools and coins.
+    fun destroy_pools_and_coins(
+        mut pools: vector<vector<u8>>,
+        mut coins: vector<coin::Coin<TREASURY_TESTS>>,
+    ) {
+        while(!pools.is_empty()) {
+            pools.pop_back();
         };
-        total
+        pools.destroy_empty();
+        while(!coins.is_empty()) {
+            let coin = coins.pop_back();
+            coin.burn_for_testing();
+        };
+        coins.destroy_empty();
     }
 }

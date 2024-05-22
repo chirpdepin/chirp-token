@@ -12,6 +12,7 @@ module blhnsuicntrtctkn::chirp {
     // === Imports ===
     use blhnsuicntrtctkn::schedule::{Self};
     use blhnsuicntrtctkn::treasury::{Self, Treasury};
+    use blhnsuicntrtctkn::pool_dispatcher::{Self, PoolDispatcher};
     use sui::object_bag::{Self, ObjectBag};
     use sui::clock::{Clock};
     use sui::coin::{Self};
@@ -95,6 +96,7 @@ module blhnsuicntrtctkn::chirp {
             version: VAULT_VERSION,
         };
 
+        vault.registry.add(b"pool_dispatcher", pool_dispatcher::default(ctx));
         vault.registry.add(b"treasury", treasury::create(treasury_cap, COIN_MAX_SUPPLY, schedule::default(), ctx));
         transfer::transfer(ScheduleAdminCap{id:object::new(ctx)}, ctx.sender());
 
@@ -118,8 +120,21 @@ module blhnsuicntrtctkn::chirp {
     /// - `EInappropriateTimeToMint`: If the mint attempt occurs outside the allowable schedule window.
     public fun mint(vault: &mut Vault, clock: &Clock, ctx: &mut TxContext) {
         assert!(vault.version == VAULT_VERSION, EWrongVersion);
-        let treasury: &mut Treasury<CHIRP> = &mut vault.registry[b"treasury"]; 
-        treasury.mint(clock, ctx);
+        let (mut pools, mut coins) = {
+            let treasury: &mut Treasury<CHIRP> = &mut vault.registry[b"treasury"]; 
+            treasury.mint(clock, ctx)
+        };
+        {
+            let dispatcher: &PoolDispatcher = &vault.registry[b"pool_dispatcher"];
+            while(!pools.is_empty()) {
+                let pool = pools.pop_back();
+                let coin = coins.pop_back();
+                dispatcher.transfer(pool, coin);
+            };
+            pools.destroy_empty();
+            coins.destroy_empty();
+        }
+
     }
 
     /// Replaces a schedule entry in the `Vault` of CHIRP tokens.
@@ -146,7 +161,7 @@ module blhnsuicntrtctkn::chirp {
         _: &ScheduleAdminCap,
         vault: &mut Vault,
         index: u64,
-        pools: vector<address>,
+        pools: vector<vector<u8>>,
         amounts: vector<u64>,
         number_of_epochs: u64,
         epoch_duration_ms: u64,
@@ -183,7 +198,7 @@ module blhnsuicntrtctkn::chirp {
         _: &ScheduleAdminCap,
         vault: &mut Vault,
         index: u64,
-        pools: vector<address>,
+        pools: vector<vector<u8>>,
         amounts: vector<u64>,
         number_of_epochs: u64,
         epoch_duration_ms: u64,
@@ -220,6 +235,18 @@ module blhnsuicntrtctkn::chirp {
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext) {
         init(CHIRP{}, ctx)
+    }
+
+    #[test_only]
+    public fun add_address_pool(vault: &mut Vault, name: vector<u8>, pool: address) {
+        let dispatcher: &mut PoolDispatcher = &mut vault.registry[b"pool_dispatcher"];
+        dispatcher.add_address_pool(name, pool);
+    }
+
+    #[test_only]
+    public fun get_address_pool(vault: &Vault, name: vector<u8>): address {
+        let dispatcher: &PoolDispatcher = &vault.registry[b"pool_dispatcher"];
+        dispatcher.get_address_pool(name)
     }
 
     #[test_only] public fun coin_decimals(): u8 { COIN_DECIMALS }
@@ -268,11 +295,17 @@ module blhnsuicntrtctkn::chirp_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut vault: Vault = scenario.take_shared();
+            vault.add_address_pool(b"test_pool", PUBLISHER);
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
             let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
 
             // Setting zero mint params
-            chirp::set_entry(&cap, &mut vault, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
+            chirp::set_entry(&cap, &mut vault, 0, vector[b"test_pool"], vector[1000], 1, 1000, 0);
             chirp::mint(&mut vault, &clock, scenario.ctx());
 
             test_scenario::return_shared(vault);
@@ -297,11 +330,17 @@ module blhnsuicntrtctkn::chirp_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut vault: Vault = scenario.take_shared();
+            vault.add_address_pool(b"test_pool", PUBLISHER);
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
             let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
 
             // inserting new zero mint stage
-            chirp::insert_entry(&cap, &mut vault, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
+            chirp::insert_entry(&cap, &mut vault, 0, vector[b"test_pool"], vector[1000], 1, 1000, 0);
             chirp::mint(&mut vault, &clock, scenario.ctx());
 
             test_scenario::return_shared(vault);
@@ -326,11 +365,17 @@ module blhnsuicntrtctkn::chirp_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut vault: Vault = scenario.take_shared();
+            vault.add_address_pool(b"test_pool", PUBLISHER);
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
             let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
 
-            chirp::insert_entry(&cap, &mut vault, 0, vector[PUBLISHER], vector[1000], 1, 1000, 0);
-            chirp::insert_entry(&cap, &mut vault, 1, vector[PUBLISHER], vector[3117], 1, 1000, 0);
+            chirp::insert_entry(&cap, &mut vault, 0, vector[b"test_pool"], vector[1000], 1, 1000, 0);
+            chirp::insert_entry(&cap, &mut vault, 1, vector[b"test_pool"], vector[3117], 1, 1000, 0);
             // removing first mint stage
             chirp::remove_entry(&cap, &mut vault, 0);
 
