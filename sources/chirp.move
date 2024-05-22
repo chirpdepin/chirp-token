@@ -253,6 +253,27 @@ module blhnsuicntrtctkn::chirp {
         treasury.remove_entry(index);
     }
 
+    /// Sets the address of the pool in schedule.
+    ///
+    /// This function allows authorized users, holding the ScheduleAdminCap, to
+    /// set the address of the pool in the schedule.
+    ///
+    /// ## Parameters:
+    /// - `_`: Reference to the ScheduleAdminCap, ensuring execution by authorized users only.
+    /// - `vault`: Mutable reference to the Vault managing the minting schedule.
+    /// - `name`: The name of the pool.
+    /// - `pool`: The address of the pool.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
+    /// - `EInvalidPool`: If the pool is not valid.
+    public fun set_address_pool(_: &ScheduleAdminCap, vault: &mut Vault, name: vector<u8>, pool: address) {
+        assert!(vault.version == VAULT_VERSION, EWrongVersion);
+        let dispatcher: &mut PoolDispatcher = &mut vault.registry[b"pool_dispatcher"];
+        assert!(dispatcher.contains(name), EInvalidPool);
+        dispatcher.set_address_pool(name, pool);
+    }
+
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext) {
         init(CHIRP{}, ctx)
@@ -454,6 +475,50 @@ module blhnsuicntrtctkn::chirp_tests {
         scenario.next_tx(PUBLISHER);
         {
             assert_eq_chirp_coin(PUBLISHER, 3117, &scenario);
+        };
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = EInvalidPool)]
+    fun test_set_address_pool_disallows_to_set_non_existent_pool()
+    {
+        let mut scenario = test_scenario::begin(PUBLISHER);
+        {
+            chirp::init_for_testing(scenario.ctx());
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+            // Fails because the pool does not exist
+            chirp::set_address_pool(&cap, &mut vault, b"non_existent_pool", PUBLISHER);
+            test_scenario::return_shared(vault);
+            test_scenario::return_to_sender(&scenario, cap);
+        };
+        scenario.end();
+    }
+
+    #[test]
+    fun test_set_address_pool_allows_to_set_address_of_pool()
+    {
+        let mut scenario = test_scenario::begin(PUBLISHER);
+        {
+            chirp::init_for_testing(scenario.ctx());
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            vault.add_address_pool(b"test_pool", @0xDEADBEEF);
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+            chirp::set_address_pool(&cap, &mut vault, b"test_pool", PUBLISHER);
+            test_scenario::return_shared(vault);
+            test_scenario::return_to_sender(&scenario, cap);
         };
         scenario.end();
     }
