@@ -6,7 +6,7 @@ module blhnsuicntrtctkn::schedule {
     // === Constants ===
     const KEEPERS: address = @0x02ab60f0e82d58cbd047dd27d9e09d08a9b41d8d08f2f08bd0f25424d08c7f77;
     const ECOSYSTEM_GROWTH_POOL: address = @0x021e2fcdb57234a42a588654bc2b31fa1a53896cdc11b81d9332a5287cd0f248;
-    const EARLY_SUPPORTERS: address = @0x6bf9e238beb4391690ec02ce41cb480f91a78178819574bf6e9882cc238920d3;
+    const STRATEGIC_SUPPORTERS: address = @0x6bf9e238beb4391690ec02ce41cb480f91a78178819574bf6e9882cc238920d3;
     const TOKEN_TREASURY: address = @0xc196c590ff20d63d17271c8dcceafc3432a47f629292fa9f552f5c8c4ea92b4b;
     const TEAM: address = @0xd841709b605bafdcb27d544b0a76e35cd3e904a6b6f5b4347e836c1dd24f6306;
     const ADVISORS: address = @0x573a0841ab7c22c1e5c714c4e5ab1c440546c8c36c2b94eba62665c5f75237d6;
@@ -18,31 +18,31 @@ module blhnsuicntrtctkn::schedule {
         vector[
             // ZERO MINT
             treasury::create_entry(
-                vector[EARLY_SUPPORTERS, TOKEN_TREASURY, LIQUIDITY],
+                vector[STRATEGIC_SUPPORTERS, TOKEN_TREASURY, LIQUIDITY],
                 vector[cents(9_600_000), cents(4_500_000), cents(15_000_000)],
                 1, 1, 0,
             ),
             // Stage 1
             treasury::create_entry(
-                vector[KEEPERS, ECOSYSTEM_GROWTH_POOL, EARLY_SUPPORTERS, TOKEN_TREASURY],
+                vector[KEEPERS, ECOSYSTEM_GROWTH_POOL, STRATEGIC_SUPPORTERS, TOKEN_TREASURY],
                 vector[cents(59_973), cents(59_972), cents(192_004), cents(42_837)],
                 45, 172800000, 0,
             ),
             // Stage 2
             treasury::create_entry(
-                vector[KEEPERS, ECOSYSTEM_GROWTH_POOL, EARLY_SUPPORTERS, ADVISORS, TEAM, TOKEN_TREASURY],
+                vector[KEEPERS, ECOSYSTEM_GROWTH_POOL, STRATEGIC_SUPPORTERS, ADVISORS, TEAM, TOKEN_TREASURY],
                 vector[cents(59_354), cents(59_971), cents(165_343), cents(9_980), cents(37_537), cents(42_837)],
                 45, 172800000, 0,
             ),
             // Stage 3
             treasury::create_entry(
-                vector[KEEPERS, ECOSYSTEM_GROWTH_POOL, EARLY_SUPPORTERS, ADVISORS, TEAM, TOKEN_TREASURY],
+                vector[KEEPERS, ECOSYSTEM_GROWTH_POOL, STRATEGIC_SUPPORTERS, ADVISORS, TEAM, TOKEN_TREASURY],
                 vector[cents(57_989), cents(59_991), cents(165_352), cents(10_015), cents(37_507), cents(42_865)],
                 90, 172800000, 0,
             ),
             // Stage 4
             treasury::create_entry(
-                vector[KEEPERS, ECOSYSTEM_GROWTH_POOL, EARLY_SUPPORTERS, ADVISORS, TEAM, TOKEN_TREASURY],
+                vector[KEEPERS, ECOSYSTEM_GROWTH_POOL, STRATEGIC_SUPPORTERS, ADVISORS, TEAM, TOKEN_TREASURY],
                 vector[cents(56_665), cents(25_009), cents(82_688), cents(16_334), cents(61_227), cents(42_864)],
                 90, 172800000, 0,
             ),
@@ -122,7 +122,7 @@ module blhnsuicntrtctkn::schedule {
     }
 
     #[test_only] public fun team(): address { TEAM }
-    #[test_only] public fun early_supporters(): address { EARLY_SUPPORTERS }
+    #[test_only] public fun strategic_supporters(): address { STRATEGIC_SUPPORTERS }
     #[test_only] public fun ecosystem_growth_pool(): address { ECOSYSTEM_GROWTH_POOL }
     #[test_only] public fun keepers(): address { KEEPERS }
     #[test_only] public fun liquidity(): address { LIQUIDITY }
@@ -167,7 +167,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(0), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(0), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(9_600_000), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(9_600_000), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(0), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(0), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(4_500_000), &scenario);
@@ -178,7 +178,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(2_698_785), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(2_698_740), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(18_240_180), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(18_240_180), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(0), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(0), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(6_427_665), &scenario);
@@ -189,7 +189,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(5_369_715), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(5_397_435), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(25_680_615), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(25_680_615), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(449_100), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(1_689_165), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(8_355_330), &scenario);
@@ -200,7 +200,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(10_588_725), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(10_796_625), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(40_562_295), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(40_562_295), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(1_350_450), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(5_064_795), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(12_213_180), &scenario);
@@ -211,7 +211,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(15_688_575), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(13_047_435), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(48_004_215), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(48_004_215), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(2_820_510), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(10_575_225), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(16_070_940), &scenario);
@@ -222,7 +222,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(23_156_640), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(16_330_770), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(48_004_215), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(48_004_215), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(5_878_530), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(22_047_390), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(21_854_880), &scenario);
@@ -233,7 +233,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(30_447_585), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(19_527_030), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(48_004_215), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(48_004_215), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(8_938_575), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(33_519_420), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(27_640_440), &scenario);
@@ -244,7 +244,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(37_560_600), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(22_634_325), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(48_004_215), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(48_004_215), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(11_998_485), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(44_996_040), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(33_429_375), &scenario);
@@ -255,7 +255,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(44_488_530), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(25_648_200), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(48_004_215), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(48_004_215), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(11_998_485), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(44_996_040), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(39_215_880), &scenario);
@@ -266,7 +266,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(51_238_395), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(28_570_140), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(48_004_215), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(48_004_215), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(11_998_485), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(44_996_040), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(45_004_680), &scenario);
@@ -277,7 +277,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(57_810_600), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(31_404_735), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(48_004_215), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(48_004_215), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(11_998_485), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(44_996_040), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(45_004_680), &scenario);
@@ -288,7 +288,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(64_198_665), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(34_148_745), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(48_004_215), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(48_004_215), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(11_998_485), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(44_996_040), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(45_004_680), &scenario);
@@ -299,7 +299,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(70_411_230), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(36_805_680), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(48_004_215), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(48_004_215), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(11_998_485), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(44_996_040), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(45_004_680), &scenario);
@@ -310,7 +310,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(76_439_520), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(39_371_895), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(48_004_215), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(48_004_215), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(11_998_485), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(44_996_040), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(45_004_680), &scenario);
@@ -321,7 +321,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(82_284_615), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(41_845_095), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(48_004_215), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(48_004_215), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(11_998_485), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(44_996_040), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(45_004_680), &scenario);
@@ -332,7 +332,7 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             assert_eq_chirp_coin(schedule::keepers(), cents(89_993_475), &scenario);
             assert_eq_chirp_coin(schedule::ecosystem_growth_pool(), cents(44_990_595), &scenario);
-            assert_eq_chirp_coin(schedule::early_supporters(), cents(48_004_215), &scenario);
+            assert_eq_chirp_coin(schedule::strategic_supporters(), cents(48_004_215), &scenario);
             assert_eq_chirp_coin(schedule::advisors(), cents(11_998_485), &scenario);
             assert_eq_chirp_coin(schedule::team(), cents(44_996_040), &scenario);
             assert_eq_chirp_coin(schedule::token_treasury(), cents(45_004_680), &scenario);

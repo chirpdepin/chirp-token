@@ -27,7 +27,7 @@ module blhnsuicntrtctkn::chirp {
 
     // === Constants ===
     /// Maximum supply of CHIRP tokens.
-    const COIN_MAX_SUPPLY: u64 = 2_999_874_900_000_000_000;
+    const COIN_MAX_SUPPLY: u64 = 3_000_000_000_000_000_000;
     /// Number of decimal places for CHIRP coins, where 10 implies
     /// 10,000,000,000 smallest units (cents) per CHIRP token.
     const COIN_DECIMALS: u8 = 10;
