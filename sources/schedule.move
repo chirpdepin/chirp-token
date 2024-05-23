@@ -3,103 +3,112 @@ module blhnsuicntrtctkn::schedule {
     // === Imports ===
     use blhnsuicntrtctkn::treasury::{Self, ScheduleEntry};
 
+    // === Constants ===
+    const STRATEGIC_SUPPORTERS: vector<u8> = b"strategic_supporters";
+    const KEEPERS: vector<u8> = b"keepers";
+    const ECOSYSTEM_GROWTH_POOL: vector<u8> = b"ecosystem_growth_pool";
+    const ADVISORS: vector<u8> = b"advisors";
+    const TEAM: vector<u8> = b"team";
+    const TOKEN_TREASURY: vector<u8> = b"token_treasury";
+    const LIQUIDITY: vector<u8> = b"liquidity";
+
     // === Public package functions ===
     /// Returns the default minting schedule
     public(package) fun default<T>(): vector<ScheduleEntry<T>> {
         vector[
             // ZERO MINT
             treasury::create_entry(
-                vector[b"strategic_supporters", b"token_treasury", b"liquidity"],
+                vector[STRATEGIC_SUPPORTERS.to_string(), TOKEN_TREASURY.to_string(), LIQUIDITY.to_string()],
                 vector[cents(9_600_000), cents(4_500_000), cents(15_000_000)],
                 1, 1, 0,
             ),
             // Stage 1
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool", b"strategic_supporters", b"token_treasury"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), STRATEGIC_SUPPORTERS.to_string(), TOKEN_TREASURY.to_string()],
                 vector[cents(59_973), cents(59_972), cents(192_004), cents(42_837)],
                 45, 172800000, 0,
             ),
             // Stage 2
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool", b"strategic_supporters", b"advisors", b"team", b"token_treasury"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), STRATEGIC_SUPPORTERS.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
                 vector[cents(59_354), cents(59_971), cents(165_343), cents(9_980), cents(37_537), cents(42_837)],
                 45, 172800000, 0,
             ),
             // Stage 3
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool", b"strategic_supporters", b"advisors", b"team", b"token_treasury"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), STRATEGIC_SUPPORTERS.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
                 vector[cents(57_989), cents(59_991), cents(165_352), cents(10_015), cents(37_507), cents(42_865)],
                 90, 172800000, 0,
             ),
             // Stage 4
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool", b"strategic_supporters", b"advisors", b"team", b"token_treasury"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), STRATEGIC_SUPPORTERS.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
                 vector[cents(56_665), cents(25_009), cents(82_688), cents(16_334), cents(61_227), cents(42_864)],
                 90, 172800000, 0,
             ),
             // Stage 5
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool", b"advisors", b"team", b"token_treasury"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
                 vector[cents(55_319), cents(24_321), cents(22_652), cents(84_979), cents(42_844)],
                 135, 172800000, 0,
             ),
             // Stage 6
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool", b"advisors", b"team", b"token_treasury"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
                 vector[cents(54_007), cents(23_676), cents(22_667), cents(84_978), cents(42_856)],
                 135, 172800000, 0,
             ),
             // Stage 7
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool", b"advisors", b"team", b"token_treasury"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
                 vector[cents(52_689), cents(23_017), cents(22_666), cents(85_012), cents(42_881)],
                 135, 172800000, 0,
             ),
             // Stage 8
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool", b"token_treasury"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), TOKEN_TREASURY.to_string()],
                 vector[cents(51_318), cents(22_325), cents(42_863)],
                 135, 172800000, 0,
             ),
             // Stage 9
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool", b"token_treasury"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), TOKEN_TREASURY.to_string()],
                 vector[cents(49_999), cents(21_644), cents(42_880)],
                 135, 172800000, 0,
             ),
             // Stage 10
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[cents(48_683), cents(20_997)],
                 135, 172800000, 0,
             ),
             // Stage 11
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[cents(47_319), cents(20_326)],
                 135, 172800000, 0,
             ),
             // Stage 12
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[cents(46_019), cents(19_681)],
                 135, 172800000, 0,
             ),
             // Stage 13
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[cents(44_654), cents(19_009)],
                 135, 172800000, 0,
             ),
             // Stage 14
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[cents(43_297), cents(18_320)],
                 135, 172800000, 0,
             ),
             // Stage 15
             treasury::create_entry(
-                vector[b"keepers", b"ecosystem_growth_pool"],
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[cents(42_827), cents(17_475)],
                 180, 172800000, 0,
             ),
@@ -116,6 +125,7 @@ module blhnsuicntrtctkn::schedule {
 #[test_only]
 module blhnsuicntrtctkn::schedule_tests {
     use blhnsuicntrtctkn::chirp::{Self, CHIRP, Vault};
+    use std::string::{Self};
     use sui::clock::{Self, Clock};
     use sui::coin::{Self};
     use sui::test_scenario;
@@ -149,13 +159,13 @@ module blhnsuicntrtctkn::schedule_tests {
             // The first mint's epoch duration is 1 millisecond
             clock.increment_for_testing(1);
 
-            let keepers = vault.get_address_pool(b"keepers");
-            let ecosystem_growth_pool = vault.get_address_pool(b"ecosystem_growth_pool");
-            let strategic_supporters = vault.get_address_pool(b"strategic_supporters");
-            let advisors = vault.get_address_pool(b"advisors");
-            let team = vault.get_address_pool(b"team");
-            let token_treasury = vault.get_address_pool(b"token_treasury");
-            let liquidity = vault.get_address_pool(b"liquidity");
+            let keepers = vault.get_address_pool(string::utf8(b"keepers"));
+            let ecosystem_growth_pool = vault.get_address_pool(string::utf8(b"ecosystem_growth_pool"));
+            let strategic_supporters = vault.get_address_pool(string::utf8(b"strategic_supporters"));
+            let advisors = vault.get_address_pool(string::utf8(b"advisors"));
+            let team = vault.get_address_pool(string::utf8(b"team"));
+            let token_treasury = vault.get_address_pool(string::utf8(b"token_treasury"));
+            let liquidity = vault.get_address_pool(string::utf8(b"liquidity"));
 
             test_scenario::return_shared(vault);
             test_scenario::return_shared(clock);
