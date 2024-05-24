@@ -15,8 +15,9 @@ module blhnsuicntrtctkn::chirp {
     use blhnsuicntrtctkn::treasury::{Self, Treasury};
     use std::string::{String};
     use sui::clock::{Clock};
-    use sui::coin::{Self};
+    use sui::coin::{Self, Coin};
     use sui::object_bag::{Self, ObjectBag};
+    use sui::object_table::{Self, ObjectTable};
     use sui::url;
 
     // === Errors ===
@@ -51,6 +52,8 @@ module blhnsuicntrtctkn::chirp {
     const POOL_DISPATCHER: vector<u8> = b"pool_dispatcher";
     /// Treasury name
     const TREASURY: vector<u8> = b"treasury";
+    /// Rewards book name
+    const REWARDS: vector<u8> = b"rewards";
 
     // === Structs ===
     /// The one-time witness for the module
@@ -63,6 +66,16 @@ module blhnsuicntrtctkn::chirp {
     /// ensures that schedule modifications are restricted to authorized
     /// personnel only.
     public struct ScheduleAdminCap has key, store {
+        /// Unique identifier for the administrative capability.
+        id: UID,
+    }
+
+    /// Administrative capability for paying out rewards.
+    /// 
+    /// This struct acts as an authorization object, enabling its holder to
+    /// perform authorized actions such as paying out rewards. It ensures that
+    /// reward payouts are restricted to authorized personnel only.
+    public struct PayoutOperatorCap has key, store {
         /// Unique identifier for the administrative capability.
         id: UID,
     }
@@ -104,9 +117,11 @@ module blhnsuicntrtctkn::chirp {
             version: VAULT_VERSION,
         };
 
-        vault.registry.add(POOL_DISPATCHER.to_string(), pool_dispatcher::default(ctx));
+        vault.registry.add(POOL_DISPATCHER.to_string(), pool_dispatcher::default<CHIRP>(ctx));
         vault.registry.add(TREASURY.to_string(), treasury::create(treasury_cap, COIN_MAX_SUPPLY, schedule::default(), ctx));
+        vault.registry.add(REWARDS.to_string(), object_table::new<address, Coin<CHIRP>>(ctx));
         transfer::transfer(ScheduleAdminCap{id:object::new(ctx)}, ctx.sender());
+        transfer::transfer(PayoutOperatorCap{id:object::new(ctx)}, ctx.sender());
 
         transfer::share_object(vault);
     }
@@ -133,7 +148,7 @@ module blhnsuicntrtctkn::chirp {
             treasury.mint(clock, ctx)
         };
         {
-            let dispatcher: &PoolDispatcher = vault.pool_dispatcher();
+            let dispatcher: &mut PoolDispatcher = vault.pool_dispatcher();
             while(!pools.is_empty()) {
                 let pool = pools.pop_back();
                 let coin = coins.pop_back();
@@ -279,6 +294,38 @@ module blhnsuicntrtctkn::chirp {
         dispatcher.set_address_pool(name, pool);
     }
 
+    /// Claims the reward from the rewards book and send it to caller.
+    entry fun claim_reward(vault: &mut Vault, amount: u64, ctx: &mut TxContext) {
+        assert!(vault.version == VAULT_VERSION, EWrongVersion);
+        let rewards: &mut ObjectTable<address, Coin<CHIRP>> = vault.rewards();
+        let coin = rewards[ctx.sender()].split(amount, ctx);
+        if (rewards[ctx.sender()].value() == 0) {
+            rewards.remove(ctx.sender()).destroy_zero();
+        };
+        transfer::public_transfer(coin, ctx.sender());
+    }
+
+    /// Allocate rewards to keeper's balance from the keepers pool.
+    public fun pay_reward(
+        _: &PayoutOperatorCap,
+        vault: &mut Vault,
+        mut wallets: vector<address>,
+        mut amounts: vector<u64>,
+        ctx: &mut TxContext,
+    ) {
+        assert!(vault.version == VAULT_VERSION, EWrongVersion);
+        while(!wallets.is_empty()) {
+            let wallet: address = wallets.pop_back();
+            let amount: u64 = amounts.pop_back();
+            let reward: Coin<CHIRP> = vault.pool_dispatcher().take_from_keepers_pool(amount, ctx);
+            let rewards_book: &mut ObjectTable<address, Coin<CHIRP>> = vault.rewards();
+            if (!rewards_book.contains(wallet)) {
+                rewards_book.add(wallet, reward)
+            } else {
+                rewards_book[wallet].join(reward)
+            }
+        }
+    }
 
     // === Private Functions ===
 
@@ -290,6 +337,11 @@ module blhnsuicntrtctkn::chirp {
     /// Returns the pool dispatcher from the vault.
     fun pool_dispatcher(vault: &mut Vault): &mut PoolDispatcher {
         &mut vault.registry[POOL_DISPATCHER.to_string()]
+    }
+
+    /// Returns the rewards book from the vault.
+    fun rewards(vault: &mut Vault): &mut ObjectTable<address, Coin<CHIRP>> {
+        &mut vault.registry[REWARDS.to_string()]
     }
 
     // === Test only functions ===
@@ -311,6 +363,13 @@ module blhnsuicntrtctkn::chirp {
         dispatcher.get_address_pool(name)
     }
 
+    #[test_only]
+    public fun get_pool_balance(vault: &mut Vault, name: String): u64 {
+        let dispatcher: &PoolDispatcher = vault.pool_dispatcher();
+        dispatcher.get_pool_balance<CHIRP>(name)
+    }
+
+
     #[test_only] public fun coin_decimals(): u8 { COIN_DECIMALS }
     #[test_only] public fun coin_description(): vector<u8> { COIN_DESCRIPTION }
     #[test_only] public fun coin_name(): vector<u8> { COIN_NAME }
@@ -319,7 +378,7 @@ module blhnsuicntrtctkn::chirp {
 
 #[test_only]
 module blhnsuicntrtctkn::chirp_tests {
-    use blhnsuicntrtctkn::chirp::{Self, CHIRP, EInvalidPool, ScheduleAdminCap, Vault};
+    use blhnsuicntrtctkn::chirp::{Self, CHIRP, EInvalidPool, PayoutOperatorCap, ScheduleAdminCap, Vault};
     use std::string;
     use sui::clock::{Self, Clock};
     use sui::coin::{Self};
@@ -541,6 +600,61 @@ module blhnsuicntrtctkn::chirp_tests {
             chirp::set_address_pool(&cap, &mut vault, TEST_POOL.to_string(), PUBLISHER);
             test_scenario::return_shared(vault);
             test_scenario::return_to_sender(&scenario, cap);
+        };
+        scenario.end();
+    }
+
+    #[test]
+    fun test_pay_reward_allows_to_pay_claimable_rewards()
+    {
+        let mut scenario = test_scenario::begin(PUBLISHER);
+        {
+            chirp::init_for_testing(scenario.ctx());
+            clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            let mut clock: Clock = scenario.take_shared();
+            chirp::mint(&mut vault, &clock, scenario.ctx());
+            clock.increment_for_testing(1000);
+            chirp::mint(&mut vault, &clock, scenario.ctx());
+            test_scenario::return_shared(vault);
+            test_scenario::return_shared(clock);
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            let cap: PayoutOperatorCap = test_scenario::take_from_sender(&scenario);
+            let wallets = vector[@0x111, @0x222, @0x333];
+            let amounts = vector[1000, 2000, 3000];
+            chirp::pay_reward(&cap, &mut vault, wallets, amounts, scenario.ctx());
+            test_scenario::return_shared(vault);
+            test_scenario::return_to_sender(&scenario, cap);
+        };
+        scenario.next_tx(@0x111);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            chirp::claim_reward(&mut vault, 1000, scenario.ctx());
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(@0x222);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            chirp::claim_reward(&mut vault, 2000, scenario.ctx());
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(@0x333);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            chirp::claim_reward(&mut vault, 3000, scenario.ctx());
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            assert_eq_chirp_coin(@0x111, 1000, &scenario);
+            assert_eq_chirp_coin(@0x222, 2000, &scenario);
+            assert_eq_chirp_coin(@0x333, 3000, &scenario);
         };
         scenario.end();
     }
