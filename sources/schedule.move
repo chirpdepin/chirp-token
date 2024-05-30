@@ -4,13 +4,13 @@ module blhnsuicntrtctkn::schedule {
     use blhnsuicntrtctkn::treasury::{Self, ScheduleEntry};
 
     // === Constants ===
-    const KEEPERS: address = @0x02ab60f0e82d58cbd047dd27d9e09d08a9b41d8d08f2f08bd0f25424d08c7f77;
-    const KEEPERS_GROWTH: address = @0x021e2fcdb57234a42a588654bc2b31fa1a53896cdc11b81d9332a5287cd0f248;
-    const INVESTORS: address = @0x6bf9e238beb4391690ec02ce41cb480f91a78178819574bf6e9882cc238920d3;
-    const TOKEN_TREASURY: address = @0xc196c590ff20d63d17271c8dcceafc3432a47f629292fa9f552f5c8c4ea92b4b;
-    const CHIRP_TEAM: address = @0xd841709b605bafdcb27d544b0a76e35cd3e904a6b6f5b4347e836c1dd24f6306;
-    const STRATEGIC_ADVISORS: address = @0x573a0841ab7c22c1e5c714c4e5ab1c440546c8c36c2b94eba62665c5f75237d6;
-    const LIQUIDITY: address = @0x9575fc19fedcd62a406385dcc7607c567d91a6df94e2eea9a941051bbb6ce65e;
+    const KEEPERS: address = @0xbe5e7cd649c93c432e8f0b761d4640e03d6a6db37e04c4c70b87b37596adfc55;
+    const KEEPERS_GROWTH: address = @0x1edc6ce4230130ace71a2280bcfe43ba161bf9754080fe224aff0f3849d7c30b;
+    const INVESTORS: address = @0x3000c7fbfb1c83abf8cd86f3a637bba37a720d60812d7d5b0ec497f553d50830;
+    const TOKEN_TREASURY: address = @0xded0cfc31d035545273f4cb9dd0648c52575062c9a4e37432c6ca3d5579f7a83;
+    const CHIRP_TEAM: address = @0xb67d8af06fe17d01db643428947baa6f976975254feedb5db9370f9fbd1dc233;
+    const STRATEGIC_ADVISORS: address = @0x7e8bd38d38b137eda219c11d2f17a5f59a5d9a974d6dac8ce280a36f3f87fb17;
+    const LIQUIDITY: address = @0xc85c58c6669e2139524bb214942d5d3cd252c81692ad58d246bf7831e16b68d7;
 
     // === Public package functions ===
     /// Returns the default minting schedule
