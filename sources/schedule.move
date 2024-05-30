@@ -20,7 +20,7 @@ module blhnsuicntrtctkn::schedule {
             treasury::create_entry(
                 vector[INVESTORS, TOKEN_TREASURY, LIQUIDITY],
                 vector[cents(9_600_000), cents(4_500_000), cents(15_000_000)],
-                1, 1, 0,
+                1, 172800000, 0,
             ),
             // Stage 1
             treasury::create_entry(
@@ -157,8 +157,8 @@ module blhnsuicntrtctkn::schedule_tests {
 
             // First mint might happen immediately
             chirp::mint(&mut treasury, &clock, scenario.ctx());
-            // The first mint's epoch duration is 1 millisecond
-            clock.increment_for_testing(1);
+            // After the initial zero mint, the first mint's epoch lasts 172,800,000 milliseconds
+            clock.increment_for_testing(172800000);
 
             test_scenario::return_shared(treasury);
             test_scenario::return_shared(clock);
