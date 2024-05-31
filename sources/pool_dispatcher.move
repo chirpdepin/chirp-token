@@ -2,6 +2,7 @@ module blhnsuicntrtctkn::pool_dispatcher {
     // === Imports ===
     use std::string::{String};
     use sui::bag::{Self, Bag};
+    use sui::coin::{Coin};
 
     // === Constants ===
     const STRATEGIC_SUPPORTERS: vector<u8> = b"strategic_supporters";
@@ -30,7 +31,7 @@ module blhnsuicntrtctkn::pool_dispatcher {
             id: object::new(ctx),
             pools: bag::new(ctx),
         };
-        dispatcher.pools.add(KEEPERS.to_string(),@0x02ab60f0e82d58cbd047dd27d9e09d08a9b41d8d08f2f08bd0f25424d08c7f77);
+        dispatcher.pools.add(KEEPERS.to_string(), @0x02ab60f0e82d58cbd047dd27d9e09d08a9b41d8d08f2f08bd0f25424d08c7f77);
         dispatcher.pools.add(ECOSYSTEM_GROWTH_POOL.to_string(), @0x021e2fcdb57234a42a588654bc2b31fa1a53896cdc11b81d9332a5287cd0f248);
         dispatcher.pools.add(STRATEGIC_SUPPORTERS.to_string(), @0x6bf9e238beb4391690ec02ce41cb480f91a78178819574bf6e9882cc238920d3);
         dispatcher.pools.add(TOKEN_TREASURY.to_string(), @0xc196c590ff20d63d17271c8dcceafc3432a47f629292fa9f552f5c8c4ea92b4b);
@@ -50,16 +51,17 @@ module blhnsuicntrtctkn::pool_dispatcher {
         *pool = address;
     }
 
-    /// Transfer an object to a pool.
-    public(package) fun transfer<T: key + store>(
+    /// Transfer the coin to a pool.
+    public(package) fun transfer<T>(
         dispatcher: &PoolDispatcher,
         name: String,
-        obj: T,
+        obj: Coin<T>,
     ) {
         let pool: address = dispatcher.pools[name];
         transfer::public_transfer(obj, pool);
     }
 
+    /// Returns true if the pool dispatcher contains a pool with the given name.
     public(package) fun contains(
         dispatcher: &PoolDispatcher,
         name: String,
@@ -68,7 +70,7 @@ module blhnsuicntrtctkn::pool_dispatcher {
     }
 
     #[test_only]
-    public fun add_address_pool(
+    public(package) fun add_address_pool(
         dispatcher: &mut PoolDispatcher,
         name: String,
         address: address,
@@ -77,7 +79,7 @@ module blhnsuicntrtctkn::pool_dispatcher {
     }
 
     #[test_only]
-    public fun get_address_pool(
+    public(package) fun get_address_pool(
         dispatcher: &PoolDispatcher,
         name: String,
     ): address {

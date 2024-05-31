@@ -15,8 +15,9 @@ module blhnsuicntrtctkn::chirp {
     use blhnsuicntrtctkn::treasury::{Self, Treasury};
     use std::string::{String};
     use sui::clock::{Clock};
-    use sui::coin::{Self};
+    use sui::coin::{Self, Coin};
     use sui::object_bag::{Self, ObjectBag};
+    use sui::object_table::{Self, ObjectTable};
     use sui::url;
 
     // === Errors ===
@@ -47,10 +48,12 @@ module blhnsuicntrtctkn::chirp {
     const COIN_ICON: vector<u8> = b"https://storage.googleapis.com/chirp-blhn-assets/images/CHIRP_White_OBG.svg";
     /// Current version of the vault.
     const VAULT_VERSION: u64 = 1;
-    /// Pool dispatcher name
+    /// Pool dispatcher component name
     const POOL_DISPATCHER: vector<u8> = b"pool_dispatcher";
-    /// Treasury name
+    /// Treasury component name
     const TREASURY: vector<u8> = b"treasury";
+    /// Depository component name
+    const DEPOSITORY: vector<u8> = b"depository";
 
     // === Structs ===
     /// The one-time witness for the module
@@ -83,7 +86,7 @@ module blhnsuicntrtctkn::chirp {
     ///
     /// This function creates a new CHIRP token, defines its properties such
     /// as number of decimals places, symbol, name, and description, and
-    /// establishes a treasury for it. It also assigns an admin capability to
+    /// establishes a vault for it. It also assigns an admin capability to
     /// the sender of the transaction that allows them to manage the minting
     /// schedule.
     fun init(otw: CHIRP, ctx: &mut TxContext) {
@@ -106,6 +109,7 @@ module blhnsuicntrtctkn::chirp {
 
         vault.registry.add(POOL_DISPATCHER.to_string(), pool_dispatcher::default(ctx));
         vault.registry.add(TREASURY.to_string(), treasury::create(treasury_cap, COIN_MAX_SUPPLY, schedule::default(), ctx));
+        vault.registry.add(DEPOSITORY.to_string(), object_table::new<address, Coin<CHIRP>>(ctx));
         transfer::transfer(ScheduleAdminCap{id:object::new(ctx)}, ctx.sender());
 
         transfer::share_object(vault);
@@ -123,7 +127,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `clock`: Reference to the Clock, providing the current time context.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
     /// - `EMintLimitReached`: If the minting has reached its limit or if the schedule is not set.
     /// - `EInappropriateTimeToMint`: If the mint attempt occurs outside the allowable schedule window.
     public fun mint(vault: &mut Vault, clock: &Clock, ctx: &mut TxContext) {
@@ -133,7 +137,7 @@ module blhnsuicntrtctkn::chirp {
             treasury.mint(clock, ctx)
         };
         {
-            let dispatcher: &PoolDispatcher = vault.pool_dispatcher();
+            let dispatcher: &mut PoolDispatcher = vault.pool_dispatcher();
             while(!pools.is_empty()) {
                 let pool = pools.pop_back();
                 let coin = coins.pop_back();
@@ -162,7 +166,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `timeshift_ms`: Initial time shift for the entry start in milliseconds.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
     /// - `EIndexOutOfRange`: If specified index is out of range or entry is irreplaceable.
     /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
     /// - `EInvalidPool`: If the pools specified in the entry are not valid.
@@ -208,7 +212,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `timeshift_ms`: Initial time shift for the entry start in milliseconds.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
     /// - `EIndexOutOfRange`: If the specified index is out of range for insertion.
     /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
     /// - `EInvalidPool`: If the pools specified in the entry are not valid.
@@ -250,7 +254,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `index`: The position from which the entry will be removed.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
     /// - `EIndexOutOfRange`: If the specified index is out of range for removal.
     public fun remove_entry(_: &ScheduleAdminCap, vault: &mut Vault, index: u64) {
         assert!(vault.version == VAULT_VERSION, EWrongVersion);
@@ -270,7 +274,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `pool`: The address of the pool.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
     /// - `EInvalidPool`: If the pool is not valid.
     public fun set_address_pool(_: &ScheduleAdminCap, vault: &mut Vault, name: String, pool: address) {
         assert!(vault.version == VAULT_VERSION, EWrongVersion);
@@ -279,6 +283,60 @@ module blhnsuicntrtctkn::chirp {
         dispatcher.set_address_pool(name, pool);
     }
 
+    /// Claims the coin from the depository and sends it to the caller.
+    ///
+    /// This function lets the callers claim coins deposited into the
+    /// depository by other users. The caller can claim only the amount
+    /// deposited for their address and not others.
+    ///
+    /// ## Parameters:
+    /// - `vault`: Mutable reference to the Vault managing the depository.
+    /// - `amount`: The amount of coins to claim.
+    /// 
+    /// ## Errors
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
+    entry fun claim(vault: &mut Vault, amount: u64, ctx: &mut TxContext) {
+        assert!(vault.version == VAULT_VERSION, EWrongVersion);
+        let depository: &mut ObjectTable<address, Coin<CHIRP>> = vault.depository();
+        let coin = depository[ctx.sender()].split(amount, ctx);
+        if (depository[ctx.sender()].value() == 0) {
+            depository.remove(ctx.sender()).destroy_zero();
+        };
+        transfer::public_transfer(coin, ctx.sender());
+    }
+
+    /// Deposits coins into the depository for recipients to claim later.
+    /// 
+    /// This function allows users to deposit coins into a recipient's depository
+    /// account, merging with existing coins under the recipient's address. If
+    /// no record exists for the specified recipient, a new one is created.
+    /// 
+    /// ## Parameters:
+    /// - `vault`: Mutable reference to the Vault managing the depository.
+    /// - `recipients`: Vector of recipients to deposit coins for.
+    /// - `coins`: Vector of coins to deposit.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
+    public fun deposit(
+        vault: &mut Vault,
+        mut recipients: vector<address>,
+        mut coins: vector<Coin<CHIRP>>,
+    ) {
+        assert!(vault.version == VAULT_VERSION, EWrongVersion);
+        while(!recipients.is_empty()) {
+            let recipient: address = recipients.pop_back();
+            let coin: Coin<CHIRP> = coins.pop_back();
+            let depository: &mut ObjectTable<address, Coin<CHIRP>> = vault.depository();
+            if (!depository.contains(recipient)) {
+                depository.add(recipient, coin)
+            } else {
+                depository[recipient].join(coin)
+            }
+        };
+        recipients.destroy_empty();
+        coins.destroy_empty();
+    }
 
     // === Private Functions ===
 
@@ -290,6 +348,11 @@ module blhnsuicntrtctkn::chirp {
     /// Returns the pool dispatcher from the vault.
     fun pool_dispatcher(vault: &mut Vault): &mut PoolDispatcher {
         &mut vault.registry[POOL_DISPATCHER.to_string()]
+    }
+
+    /// Returns the depository from the vault.
+    fun depository(vault: &mut Vault): &mut ObjectTable<address, Coin<CHIRP>> {
+        &mut vault.registry[DEPOSITORY.to_string()]
     }
 
     // === Test only functions ===
@@ -541,6 +604,63 @@ module blhnsuicntrtctkn::chirp_tests {
             chirp::set_address_pool(&cap, &mut vault, TEST_POOL.to_string(), PUBLISHER);
             test_scenario::return_shared(vault);
             test_scenario::return_to_sender(&scenario, cap);
+        };
+        scenario.end();
+    }
+
+    #[test]
+    fun test_pay_reward_allows_to_pay_claimable_rewards()
+    {
+        let mut scenario = test_scenario::begin(PUBLISHER);
+        {
+            chirp::init_for_testing(scenario.ctx());
+            clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            let mut clock: Clock = scenario.take_shared();
+            chirp::mint(&mut vault, &clock, scenario.ctx());
+            clock.increment_for_testing(1000);
+            chirp::mint(&mut vault, &clock, scenario.ctx());
+            test_scenario::return_shared(vault);
+            test_scenario::return_shared(clock);
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            let wallets = vector[@0x111, @0x222, @0x333];
+            let coins = vector[
+                coin::mint_for_testing<CHIRP>(1000, scenario.ctx()),
+                coin::mint_for_testing<CHIRP>(2000, scenario.ctx()),
+                coin::mint_for_testing<CHIRP>(3000, scenario.ctx()),
+            ];
+            chirp::deposit(&mut vault, wallets, coins);
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(@0x111);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            chirp::claim(&mut vault, 1000, scenario.ctx());
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(@0x222);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            chirp::claim(&mut vault, 2000, scenario.ctx());
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(@0x333);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            chirp::claim(&mut vault, 3000, scenario.ctx());
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            assert_eq_chirp_coin(@0x111, 1000, &scenario);
+            assert_eq_chirp_coin(@0x222, 2000, &scenario);
+            assert_eq_chirp_coin(@0x333, 3000, &scenario);
         };
         scenario.end();
     }
