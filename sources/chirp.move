@@ -48,12 +48,12 @@ module blhnsuicntrtctkn::chirp {
     const COIN_ICON: vector<u8> = b"https://storage.googleapis.com/chirp-blhn-assets/images/CHIRP_White_OBG.svg";
     /// Current version of the vault.
     const VAULT_VERSION: u64 = 1;
-    /// Pool dispatcher name
+    /// Pool dispatcher component name
     const POOL_DISPATCHER: vector<u8> = b"pool_dispatcher";
-    /// Treasury name
+    /// Treasury component name
     const TREASURY: vector<u8> = b"treasury";
-    /// Rewards book name
-    const LOCKER: vector<u8> = b"locker";
+    /// Depository component name
+    const DEPOSITORY: vector<u8> = b"depository";
 
     // === Structs ===
     /// The one-time witness for the module
@@ -109,7 +109,7 @@ module blhnsuicntrtctkn::chirp {
 
         vault.registry.add(POOL_DISPATCHER.to_string(), pool_dispatcher::default(ctx));
         vault.registry.add(TREASURY.to_string(), treasury::create(treasury_cap, COIN_MAX_SUPPLY, schedule::default(), ctx));
-        vault.registry.add(LOCKER.to_string(), object_table::new<address, Coin<CHIRP>>(ctx));
+        vault.registry.add(DEPOSITORY.to_string(), object_table::new<address, Coin<CHIRP>>(ctx));
         transfer::transfer(ScheduleAdminCap{id:object::new(ctx)}, ctx.sender());
 
         transfer::share_object(vault);
@@ -283,36 +283,36 @@ module blhnsuicntrtctkn::chirp {
         dispatcher.set_address_pool(name, pool);
     }
 
-    /// Claims the coin from the locker account and sends it to the caller.
+    /// Claims the coin from the depository and sends it to the caller.
     ///
     /// This function lets the callers claim coins deposited into the
-    /// locker account by other users. The caller can claim only the amount
+    /// depository by other users. The caller can claim only the amount
     /// deposited for their address and not others.
     ///
     /// ## Parameters:
-    /// - `vault`: Mutable reference to the Vault managing the locker account.
+    /// - `vault`: Mutable reference to the Vault managing the depository.
     /// - `amount`: The amount of coins to claim.
     /// 
     /// ## Errors
     /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
     entry fun claim(vault: &mut Vault, amount: u64, ctx: &mut TxContext) {
         assert!(vault.version == VAULT_VERSION, EWrongVersion);
-        let locker: &mut ObjectTable<address, Coin<CHIRP>> = vault.locker();
-        let coin = locker[ctx.sender()].split(amount, ctx);
-        if (locker[ctx.sender()].value() == 0) {
-            locker.remove(ctx.sender()).destroy_zero();
+        let depository: &mut ObjectTable<address, Coin<CHIRP>> = vault.depository();
+        let coin = depository[ctx.sender()].split(amount, ctx);
+        if (depository[ctx.sender()].value() == 0) {
+            depository.remove(ctx.sender()).destroy_zero();
         };
         transfer::public_transfer(coin, ctx.sender());
     }
 
-    /// Deposits coins into the locker account for recipients to claim later.
+    /// Deposits coins into the depository for recipients to claim later.
     /// 
-    /// This function allows users to deposit coins into a recipient's locker
+    /// This function allows users to deposit coins into a recipient's depository
     /// account, merging with existing coins under the recipient's address. If
     /// no record exists for the specified recipient, a new one is created.
     /// 
     /// ## Parameters:
-    /// - `vault`: Mutable reference to the Vault managing the locker account.
+    /// - `vault`: Mutable reference to the Vault managing the depository.
     /// - `recipients`: Vector of recipients to deposit coins for.
     /// - `coins`: Vector of coins to deposit.
     ///
@@ -327,11 +327,11 @@ module blhnsuicntrtctkn::chirp {
         while(!recipients.is_empty()) {
             let recipient: address = recipients.pop_back();
             let coin: Coin<CHIRP> = coins.pop_back();
-            let locker: &mut ObjectTable<address, Coin<CHIRP>> = vault.locker();
-            if (!locker.contains(recipient)) {
-                locker.add(recipient, coin)
+            let depository: &mut ObjectTable<address, Coin<CHIRP>> = vault.depository();
+            if (!depository.contains(recipient)) {
+                depository.add(recipient, coin)
             } else {
-                locker[recipient].join(coin)
+                depository[recipient].join(coin)
             }
         };
         recipients.destroy_empty();
@@ -350,9 +350,9 @@ module blhnsuicntrtctkn::chirp {
         &mut vault.registry[POOL_DISPATCHER.to_string()]
     }
 
-    /// Returns the locker account from the vault.
-    fun locker(vault: &mut Vault): &mut ObjectTable<address, Coin<CHIRP>> {
-        &mut vault.registry[LOCKER.to_string()]
+    /// Returns the depository from the vault.
+    fun depository(vault: &mut Vault): &mut ObjectTable<address, Coin<CHIRP>> {
+        &mut vault.registry[DEPOSITORY.to_string()]
     }
 
     // === Test only functions ===
