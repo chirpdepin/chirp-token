@@ -2,8 +2,7 @@ module blhnsuicntrtctkn::pool_dispatcher {
     // === Imports ===
     use std::string::{String};
     use sui::bag::{Self, Bag};
-    use sui::balance::{Self, Balance};
-    use sui::coin::{Self, Coin};
+    use sui::coin::{Coin};
 
     // === Constants ===
     const STRATEGIC_SUPPORTERS: vector<u8> = b"strategic_supporters";
@@ -27,12 +26,12 @@ module blhnsuicntrtctkn::pool_dispatcher {
     // === Public package functions ===
 
     /// Creates a new pool dispatcher.
-    public(package) fun default<T>(ctx: &mut TxContext): PoolDispatcher {
+    public(package) fun default(ctx: &mut TxContext): PoolDispatcher {
         let mut dispatcher = PoolDispatcher {
             id: object::new(ctx),
             pools: bag::new(ctx),
         };
-        dispatcher.pools.add(KEEPERS.to_string(), balance::zero<T>());
+        dispatcher.pools.add(KEEPERS.to_string(), @0x02ab60f0e82d58cbd047dd27d9e09d08a9b41d8d08f2f08bd0f25424d08c7f77);
         dispatcher.pools.add(ECOSYSTEM_GROWTH_POOL.to_string(), @0x021e2fcdb57234a42a588654bc2b31fa1a53896cdc11b81d9332a5287cd0f248);
         dispatcher.pools.add(STRATEGIC_SUPPORTERS.to_string(), @0x6bf9e238beb4391690ec02ce41cb480f91a78178819574bf6e9882cc238920d3);
         dispatcher.pools.add(TOKEN_TREASURY.to_string(), @0xc196c590ff20d63d17271c8dcceafc3432a47f629292fa9f552f5c8c4ea92b4b);
@@ -54,17 +53,12 @@ module blhnsuicntrtctkn::pool_dispatcher {
 
     /// Transfer the coin to a pool.
     public(package) fun transfer<T>(
-        dispatcher: &mut PoolDispatcher,
+        dispatcher: &PoolDispatcher,
         name: String,
         obj: Coin<T>,
     ) {
-        if (name == KEEPERS.to_string()) {
-            let pool: &mut Balance<T> = &mut dispatcher.pools[name];
-            coin::put(pool, obj);
-        } else {
-            let pool: address = dispatcher.pools[name];
-            transfer::public_transfer(obj, pool);
-        }
+        let pool: address = dispatcher.pools[name];
+        transfer::public_transfer(obj, pool);
     }
 
     /// Returns true if the pool dispatcher contains a pool with the given name.
@@ -73,15 +67,6 @@ module blhnsuicntrtctkn::pool_dispatcher {
         name: String,
     ): bool {
        dispatcher.pools.contains(name) 
-    }
-
-    /// Take the coin from the keepers pool.
-    public(package) fun take_from_keepers_pool<T>(
-        dispatcher: &mut PoolDispatcher,
-        amount: u64,
-        ctx: &mut TxContext,
-    ):Coin<T>{
-        coin::take(&mut dispatcher.pools[KEEPERS.to_string()], amount, ctx)
     }
 
     #[test_only]
@@ -99,14 +84,5 @@ module blhnsuicntrtctkn::pool_dispatcher {
         name: String,
     ): address {
         dispatcher.pools[name]
-    }
-
-    #[test_only]
-    public(package) fun get_pool_balance<T>(
-        dispatcher: &PoolDispatcher,
-        name: String,
-    ): u64 {
-        let pool: &Balance<T> = &dispatcher.pools[name];
-        pool.value()
     }
 }

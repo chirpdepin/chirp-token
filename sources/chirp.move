@@ -53,7 +53,7 @@ module blhnsuicntrtctkn::chirp {
     /// Treasury name
     const TREASURY: vector<u8> = b"treasury";
     /// Rewards book name
-    const REWARDS: vector<u8> = b"rewards";
+    const LOCKER: vector<u8> = b"locker";
 
     // === Structs ===
     /// The one-time witness for the module
@@ -66,16 +66,6 @@ module blhnsuicntrtctkn::chirp {
     /// ensures that schedule modifications are restricted to authorized
     /// personnel only.
     public struct ScheduleAdminCap has key, store {
-        /// Unique identifier for the administrative capability.
-        id: UID,
-    }
-
-    /// Administrative capability for paying out rewards.
-    /// 
-    /// This struct acts as an authorization object, enabling its holder to
-    /// perform authorized actions such as paying out rewards. It ensures that
-    /// reward payouts are restricted to authorized personnel only.
-    public struct PayoutOperatorCap has key, store {
         /// Unique identifier for the administrative capability.
         id: UID,
     }
@@ -96,7 +86,7 @@ module blhnsuicntrtctkn::chirp {
     ///
     /// This function creates a new CHIRP token, defines its properties such
     /// as number of decimals places, symbol, name, and description, and
-    /// establishes a treasury for it. It also assigns an admin capability to
+    /// establishes a vault for it. It also assigns an admin capability to
     /// the sender of the transaction that allows them to manage the minting
     /// schedule.
     fun init(otw: CHIRP, ctx: &mut TxContext) {
@@ -117,11 +107,10 @@ module blhnsuicntrtctkn::chirp {
             version: VAULT_VERSION,
         };
 
-        vault.registry.add(POOL_DISPATCHER.to_string(), pool_dispatcher::default<CHIRP>(ctx));
+        vault.registry.add(POOL_DISPATCHER.to_string(), pool_dispatcher::default(ctx));
         vault.registry.add(TREASURY.to_string(), treasury::create(treasury_cap, COIN_MAX_SUPPLY, schedule::default(), ctx));
-        vault.registry.add(REWARDS.to_string(), object_table::new<address, Coin<CHIRP>>(ctx));
+        vault.registry.add(LOCKER.to_string(), object_table::new<address, Coin<CHIRP>>(ctx));
         transfer::transfer(ScheduleAdminCap{id:object::new(ctx)}, ctx.sender());
-        transfer::transfer(PayoutOperatorCap{id:object::new(ctx)}, ctx.sender());
 
         transfer::share_object(vault);
     }
@@ -138,7 +127,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `clock`: Reference to the Clock, providing the current time context.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
     /// - `EMintLimitReached`: If the minting has reached its limit or if the schedule is not set.
     /// - `EInappropriateTimeToMint`: If the mint attempt occurs outside the allowable schedule window.
     public fun mint(vault: &mut Vault, clock: &Clock, ctx: &mut TxContext) {
@@ -177,7 +166,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `timeshift_ms`: Initial time shift for the entry start in milliseconds.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
     /// - `EIndexOutOfRange`: If specified index is out of range or entry is irreplaceable.
     /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
     /// - `EInvalidPool`: If the pools specified in the entry are not valid.
@@ -223,7 +212,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `timeshift_ms`: Initial time shift for the entry start in milliseconds.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
     /// - `EIndexOutOfRange`: If the specified index is out of range for insertion.
     /// - `EInvalidScheduleEntry`: If the parameters of the new entry are invalid.
     /// - `EInvalidPool`: If the pools specified in the entry are not valid.
@@ -265,7 +254,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `index`: The position from which the entry will be removed.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
     /// - `EIndexOutOfRange`: If the specified index is out of range for removal.
     public fun remove_entry(_: &ScheduleAdminCap, vault: &mut Vault, index: u64) {
         assert!(vault.version == VAULT_VERSION, EWrongVersion);
@@ -285,7 +274,7 @@ module blhnsuicntrtctkn::chirp {
     /// - `pool`: The address of the pool.
     ///
     /// ## Errors
-    /// - `EWrongVersion`: If the treasury version does not match the VAULT_VERSION.
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
     /// - `EInvalidPool`: If the pool is not valid.
     public fun set_address_pool(_: &ScheduleAdminCap, vault: &mut Vault, name: String, pool: address) {
         assert!(vault.version == VAULT_VERSION, EWrongVersion);
@@ -294,37 +283,59 @@ module blhnsuicntrtctkn::chirp {
         dispatcher.set_address_pool(name, pool);
     }
 
-    /// Claims the reward from the rewards book and send it to caller.
-    entry fun claim_reward(vault: &mut Vault, amount: u64, ctx: &mut TxContext) {
+    /// Claims the coin from the locker account and sends it to the caller.
+    ///
+    /// This function lets the callers claim coins deposited into the
+    /// locker account by other users. The caller can claim only the amount
+    /// deposited for their address and not others.
+    ///
+    /// ## Parameters:
+    /// - `vault`: Mutable reference to the Vault managing the locker account.
+    /// - `amount`: The amount of coins to claim.
+    /// 
+    /// ## Errors
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
+    entry fun claim(vault: &mut Vault, amount: u64, ctx: &mut TxContext) {
         assert!(vault.version == VAULT_VERSION, EWrongVersion);
-        let rewards: &mut ObjectTable<address, Coin<CHIRP>> = vault.rewards();
-        let coin = rewards[ctx.sender()].split(amount, ctx);
-        if (rewards[ctx.sender()].value() == 0) {
-            rewards.remove(ctx.sender()).destroy_zero();
+        let locker: &mut ObjectTable<address, Coin<CHIRP>> = vault.locker();
+        let coin = locker[ctx.sender()].split(amount, ctx);
+        if (locker[ctx.sender()].value() == 0) {
+            locker.remove(ctx.sender()).destroy_zero();
         };
         transfer::public_transfer(coin, ctx.sender());
     }
 
-    /// Allocate rewards to keeper's balance from the keepers pool.
-    public fun pay_reward(
-        _: &PayoutOperatorCap,
+    /// Deposits coins into the locker account for recipients to claim later.
+    /// 
+    /// This function allows users to deposit coins into a recipient's locker
+    /// account, merging with existing coins under the recipient's address. If
+    /// no record exists for the specified recipient, a new one is created.
+    /// 
+    /// ## Parameters:
+    /// - `vault`: Mutable reference to the Vault managing the locker account.
+    /// - `recipients`: Vector of recipients to deposit coins for.
+    /// - `coins`: Vector of coins to deposit.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
+    public fun deposit(
         vault: &mut Vault,
-        mut wallets: vector<address>,
-        mut amounts: vector<u64>,
-        ctx: &mut TxContext,
+        mut recipients: vector<address>,
+        mut coins: vector<Coin<CHIRP>>,
     ) {
         assert!(vault.version == VAULT_VERSION, EWrongVersion);
-        while(!wallets.is_empty()) {
-            let wallet: address = wallets.pop_back();
-            let amount: u64 = amounts.pop_back();
-            let reward: Coin<CHIRP> = vault.pool_dispatcher().take_from_keepers_pool(amount, ctx);
-            let rewards_book: &mut ObjectTable<address, Coin<CHIRP>> = vault.rewards();
-            if (!rewards_book.contains(wallet)) {
-                rewards_book.add(wallet, reward)
+        while(!recipients.is_empty()) {
+            let recipient: address = recipients.pop_back();
+            let coin: Coin<CHIRP> = coins.pop_back();
+            let locker: &mut ObjectTable<address, Coin<CHIRP>> = vault.locker();
+            if (!locker.contains(recipient)) {
+                locker.add(recipient, coin)
             } else {
-                rewards_book[wallet].join(reward)
+                locker[recipient].join(coin)
             }
-        }
+        };
+        recipients.destroy_empty();
+        coins.destroy_empty();
     }
 
     // === Private Functions ===
@@ -339,9 +350,9 @@ module blhnsuicntrtctkn::chirp {
         &mut vault.registry[POOL_DISPATCHER.to_string()]
     }
 
-    /// Returns the rewards book from the vault.
-    fun rewards(vault: &mut Vault): &mut ObjectTable<address, Coin<CHIRP>> {
-        &mut vault.registry[REWARDS.to_string()]
+    /// Returns the locker account from the vault.
+    fun locker(vault: &mut Vault): &mut ObjectTable<address, Coin<CHIRP>> {
+        &mut vault.registry[LOCKER.to_string()]
     }
 
     // === Test only functions ===
@@ -363,13 +374,6 @@ module blhnsuicntrtctkn::chirp {
         dispatcher.get_address_pool(name)
     }
 
-    #[test_only]
-    public fun get_pool_balance(vault: &mut Vault, name: String): u64 {
-        let dispatcher: &PoolDispatcher = vault.pool_dispatcher();
-        dispatcher.get_pool_balance<CHIRP>(name)
-    }
-
-
     #[test_only] public fun coin_decimals(): u8 { COIN_DECIMALS }
     #[test_only] public fun coin_description(): vector<u8> { COIN_DESCRIPTION }
     #[test_only] public fun coin_name(): vector<u8> { COIN_NAME }
@@ -378,7 +382,7 @@ module blhnsuicntrtctkn::chirp {
 
 #[test_only]
 module blhnsuicntrtctkn::chirp_tests {
-    use blhnsuicntrtctkn::chirp::{Self, CHIRP, EInvalidPool, PayoutOperatorCap, ScheduleAdminCap, Vault};
+    use blhnsuicntrtctkn::chirp::{Self, CHIRP, EInvalidPool, ScheduleAdminCap, Vault};
     use std::string;
     use sui::clock::{Self, Clock};
     use sui::coin::{Self};
@@ -625,29 +629,31 @@ module blhnsuicntrtctkn::chirp_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut vault: Vault = scenario.take_shared();
-            let cap: PayoutOperatorCap = test_scenario::take_from_sender(&scenario);
             let wallets = vector[@0x111, @0x222, @0x333];
-            let amounts = vector[1000, 2000, 3000];
-            chirp::pay_reward(&cap, &mut vault, wallets, amounts, scenario.ctx());
+            let coins = vector[
+                coin::mint_for_testing<CHIRP>(1000, scenario.ctx()),
+                coin::mint_for_testing<CHIRP>(2000, scenario.ctx()),
+                coin::mint_for_testing<CHIRP>(3000, scenario.ctx()),
+            ];
+            chirp::deposit(&mut vault, wallets, coins);
             test_scenario::return_shared(vault);
-            test_scenario::return_to_sender(&scenario, cap);
         };
         scenario.next_tx(@0x111);
         {
             let mut vault: Vault = scenario.take_shared();
-            chirp::claim_reward(&mut vault, 1000, scenario.ctx());
+            chirp::claim(&mut vault, 1000, scenario.ctx());
             test_scenario::return_shared(vault);
         };
         scenario.next_tx(@0x222);
         {
             let mut vault: Vault = scenario.take_shared();
-            chirp::claim_reward(&mut vault, 2000, scenario.ctx());
+            chirp::claim(&mut vault, 2000, scenario.ctx());
             test_scenario::return_shared(vault);
         };
         scenario.next_tx(@0x333);
         {
             let mut vault: Vault = scenario.take_shared();
-            chirp::claim_reward(&mut vault, 3000, scenario.ctx());
+            chirp::claim(&mut vault, 3000, scenario.ctx());
             test_scenario::return_shared(vault);
         };
         scenario.next_tx(PUBLISHER);

@@ -125,7 +125,7 @@ module blhnsuicntrtctkn::schedule {
 #[test_only]
 module blhnsuicntrtctkn::schedule_tests {
     use blhnsuicntrtctkn::chirp::{Self, CHIRP, Vault};
-    use std::string::{Self, String};
+    use std::string::{String};
     use sui::clock::{Self, Clock};
     use sui::coin::{Self};
     use sui::test_scenario::{Self, Scenario};
@@ -374,12 +374,8 @@ module blhnsuicntrtctkn::schedule_tests {
 
     /// Asserts that the CHIRP pool's value matches the expected value.
     fun assert_pool_eq_chirp_coin(vault: &mut Vault, name: String, expected_value: u64, scenario: &Scenario) {
-        if (name == string::utf8(b"keepers")) {
-            test_utils::assert_eq(vault.get_pool_balance(name), expected_value);
-        } else {
-            let owner = vault.get_address_pool(name);
-            test_utils::assert_eq(total_coins(owner, scenario), expected_value);
-        }
+        let owner = vault.get_address_pool(name);
+        test_utils::assert_eq(total_coins(owner, scenario), expected_value);
     }
 
     /// Mints the specified number of epochs of CHIRP coins.
