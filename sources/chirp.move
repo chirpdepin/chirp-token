@@ -18,6 +18,7 @@ module blhnsuicntrtctkn::chirp {
     use sui::coin::{Self, Coin};
     use sui::object_bag::{Self, ObjectBag};
     use sui::object_table::{Self, ObjectTable};
+    use sui::pay::{Self};
     use sui::url;
 
     // === Errors ===
@@ -305,6 +306,7 @@ module blhnsuicntrtctkn::chirp {
         transfer::public_transfer(coin, ctx.sender());
     }
 
+    #[allow(lint(self_transfer))]
     /// Deposits coins into the depository for recipients to claim later.
     /// 
     /// This function allows users to deposit coins into a recipient's depository
@@ -313,20 +315,28 @@ module blhnsuicntrtctkn::chirp {
     /// 
     /// ## Parameters:
     /// - `vault`: Mutable reference to the Vault managing the depository.
-    /// - `recipients`: Vector of recipients to deposit coins for.
     /// - `coins`: Vector of coins to deposit.
+    /// - `recipients`: Vector of recipients to deposit coins for.
+    /// - `amounts`: Vector of amounts to deposit for each recipient.
     ///
     /// ## Errors
     /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
-    public fun deposit(
+    public fun deposit_batch(
         vault: &mut Vault,
-        mut recipients: vector<address>,
         mut coins: vector<Coin<CHIRP>>,
+        mut recipients: vector<address>,
+        mut amounts: vector<u64>,
+        ctx: &mut TxContext,
     ) {
         assert!(vault.version == VAULT_VERSION, EWrongVersion);
+
+        let mut all_coins = coins.pop_back();
+        pay::join_vec(&mut all_coins, coins);
+
         while(!recipients.is_empty()) {
             let recipient: address = recipients.pop_back();
-            let coin: Coin<CHIRP> = coins.pop_back();
+            let amount: u64 = amounts.pop_back();
+            let coin: Coin<CHIRP> = all_coins.split(amount, ctx);
             let depository: &mut ObjectTable<address, Coin<CHIRP>> = vault.depository();
             if (!depository.contains(recipient)) {
                 depository.add(recipient, coin)
@@ -335,7 +345,7 @@ module blhnsuicntrtctkn::chirp {
             }
         };
         recipients.destroy_empty();
-        coins.destroy_empty();
+        transfer::public_transfer(all_coins, ctx.sender());
     }
 
     // === Private Functions ===
@@ -619,23 +629,13 @@ module blhnsuicntrtctkn::chirp_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut vault: Vault = scenario.take_shared();
-            let mut clock: Clock = scenario.take_shared();
-            chirp::mint(&mut vault, &clock, scenario.ctx());
-            clock.increment_for_testing(1000);
-            chirp::mint(&mut vault, &clock, scenario.ctx());
-            test_scenario::return_shared(vault);
-            test_scenario::return_shared(clock);
-        };
-        scenario.next_tx(PUBLISHER);
-        {
-            let mut vault: Vault = scenario.take_shared();
             let wallets = vector[@0x111, @0x222, @0x333];
             let coins = vector[
-                coin::mint_for_testing<CHIRP>(1000, scenario.ctx()),
-                coin::mint_for_testing<CHIRP>(2000, scenario.ctx()),
-                coin::mint_for_testing<CHIRP>(3000, scenario.ctx()),
+                coin::mint_for_testing<CHIRP>(5000, scenario.ctx()),
+                coin::mint_for_testing<CHIRP>(5000, scenario.ctx()),
+                coin::mint_for_testing<CHIRP>(5000, scenario.ctx()),
             ];
-            chirp::deposit(&mut vault, wallets, coins);
+            chirp::deposit_batch(&mut vault, coins, wallets, vector[1000, 2000, 3000], scenario.ctx());
             test_scenario::return_shared(vault);
         };
         scenario.next_tx(@0x111);
@@ -661,6 +661,7 @@ module blhnsuicntrtctkn::chirp_tests {
             assert_eq_chirp_coin(@0x111, 1000, &scenario);
             assert_eq_chirp_coin(@0x222, 2000, &scenario);
             assert_eq_chirp_coin(@0x333, 3000, &scenario);
+            assert_eq_chirp_coin(PUBLISHER, 9000, &scenario);
         };
         scenario.end();
     }
