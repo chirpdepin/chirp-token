@@ -321,7 +321,7 @@ module blhnsuicntrtctkn::chirp {
     ///
     /// ## Errors
     /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
-    public fun deposit(
+    public fun deposit_batch(
         vault: &mut Vault,
         mut coins: vector<Coin<CHIRP>>,
         mut recipients: vector<address>,
@@ -635,7 +635,7 @@ module blhnsuicntrtctkn::chirp_tests {
                 coin::mint_for_testing<CHIRP>(5000, scenario.ctx()),
                 coin::mint_for_testing<CHIRP>(5000, scenario.ctx()),
             ];
-            chirp::deposit(&mut vault, coins, wallets, vector[1000, 2000, 3000], scenario.ctx());
+            chirp::deposit_batch(&mut vault, coins, wallets, vector[1000, 2000, 3000], scenario.ctx());
             test_scenario::return_shared(vault);
         };
         scenario.next_tx(@0x111);
