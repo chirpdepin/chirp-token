@@ -19,106 +19,106 @@ module blhnsuicntrtctkn::schedule {
             // ZERO MINT
             treasury::create_entry(
                 vector[STRATEGIC_SUPPORTERS.to_string(), TOKEN_TREASURY.to_string(), LIQUIDITY.to_string()],
-                vector[cents(9_600_000), cents(4_500_000), cents(15_000_000)],
+                vector[95_999_000_000_000_100, 127_499_000_000_000_000, 150_000_000_000_000_000],
                 1, 172800000, 0,
             ),
             // Stage 1
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), STRATEGIC_SUPPORTERS.to_string(), TOKEN_TREASURY.to_string()],
-                vector[cents(59_973), cents(59_972), cents(192_004), cents(42_837)],
+                vector[600_000_000_000_000, 600_000_000_000_000, 1_920_000_000_000_000, 404_762_000_000_000],
                 45, 172800000, 0,
             ),
             // Stage 2
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), STRATEGIC_SUPPORTERS.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
-                vector[cents(59_354), cents(59_971), cents(165_343), cents(9_980), cents(37_537), cents(42_837)],
+                vector[593_333_333_333_333, 600_000_000_000_000, 1_653_333_333_333_330, 49_855_555_555_560, 375_000_000_000_000, 404_762_000_000_000],
                 45, 172800000, 0,
             ),
             // Stage 3
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), STRATEGIC_SUPPORTERS.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
-                vector[cents(57_989), cents(59_991), cents(165_352), cents(10_015), cents(37_507), cents(42_865)],
+                vector[580_000_000_000_000, 600_000_000_000_000, 1_653_333_333_333_330, 50_000_000_000_000, 375_000_000_000_000, 404_761_888_888_888],
                 90, 172800000, 0,
             ),
             // Stage 4
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), STRATEGIC_SUPPORTERS.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
-                vector[cents(56_665), cents(25_009), cents(82_688), cents(16_334), cents(61_227), cents(42_864)],
+                vector[566_666_666_666_666, 250_000_000_000_000, 826_666_666_666_666, 81_666_666_666_666, 612_500_000_000_000, 404_761_888_888_888],
                 90, 172800000, 0,
             ),
             // Stage 5
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
-                vector[cents(55_319), cents(24_321), cents(22_652), cents(84_979), cents(42_844)],
+                vector[553_333_333_333_333, 243_333_333_333_333, 113_333_333_333_333, 850_000_000_000_000, 404_761_925_925_925],
                 135, 172800000, 0,
             ),
             // Stage 6
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
-                vector[cents(54_007), cents(23_676), cents(22_667), cents(84_978), cents(42_856)],
+                vector[540_000_000_000_000, 236_666_666_666_666, 113_333_333_333_333, 850_000_000_000_000, 404_761_925_925_925],
                 135, 172800000, 0,
             ),
             // Stage 7
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
-                vector[cents(52_689), cents(23_017), cents(22_666), cents(85_012), cents(42_881)],
+                vector[526_666_666_666_666, 230_000_000_000_000, 113_333_333_333_333, 850_000_000_000_000, 404_761_925_925_925],
                 135, 172800000, 0,
             ),
             // Stage 8
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), TOKEN_TREASURY.to_string()],
-                vector[cents(51_318), cents(22_325), cents(42_863)],
+                vector[513_333_333_333_333, 223_333_333_333_333, 404_761_925_925_925],
                 135, 172800000, 0,
             ),
             // Stage 9
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), TOKEN_TREASURY.to_string()],
-                vector[cents(49_999), cents(21_644), cents(42_880)],
+                vector[500_000_000_000_000, 216_666_666_666_666, 404_761_777_777_777],
                 135, 172800000, 0,
             ),
             // Stage 10
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
-                vector[cents(48_683), cents(20_997)],
+                vector[486_666_666_666_666, 210_000_000_000_000],
                 135, 172800000, 0,
             ),
             // Stage 11
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
-                vector[cents(47_319), cents(20_326)],
+                vector[473333333333333, 203333333333333],
                 135, 172800000, 0,
             ),
             // Stage 12
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
-                vector[cents(46_019), cents(19_681)],
+                vector[460_000_000_000_000, 196_666_666_666_666],
                 135, 172800000, 0,
             ),
             // Stage 13
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
-                vector[cents(44_654), cents(19_009)],
+                vector[446_666_666_666_666, 190_000_000_000_000],
                 135, 172800000, 0,
             ),
             // Stage 14
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
-                vector[cents(43_297), cents(18_320)],
+                vector[433_333_333_333_333, 183_333_333_333_333],
                 135, 172800000, 0,
             ),
             // Stage 15
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
-                vector[cents(42_827), cents(17_475)],
-                180, 172800000, 0,
+                vector[428_333_296_089_385, 175_000_000_000_000],
+                179, 172800000, 0,
+            ),
+            // Stage 16
+            treasury::create_entry(
+                vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
+                vector[426_340_000_000_640, 173_000_000_000_448],
+                1, 172800000, 0,
             ),
         ]
-    }
-
-    // === Private functions ===
-    /// Returns the coin value in CHIRP cents
-    fun cents(value: u64): u64 {
-        value * 10000000000u64
     }
 } 
 
@@ -164,208 +164,221 @@ module blhnsuicntrtctkn::schedule_tests {
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(0), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(0), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(9_600_000), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(0), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(0), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(4_500_000), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 0, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 0, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 95_999_000_000_000_100, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 0, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 0, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 127_499_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(45, &mut scenario); // stage 1
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(2_698_785), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(2_698_740), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(18_240_180), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(0), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(0), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(6_427_665), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 27_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 27_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 182_399_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 0, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 0, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 145_713_290_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(45, &mut scenario); // stage 2
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(5_369_715), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(5_397_435), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(25_680_615), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(449_100), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(1_689_165), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(8_355_330), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 53_700_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 54_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 256_799_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 2_243_500_000_000_200, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 16_875_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 163_927_580_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(90, &mut scenario); // stage 3
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(10_588_725), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(10_796_625), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(40_562_295), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(1_350_450), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(5_064_795), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(12_213_180), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 105_900_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 108_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 405_599_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 6_743_500_000_000_200, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 50_625_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 200_356_150_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(90, &mut scenario); // stage 4
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(15_688_575), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(13_047_435), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(48_004_215), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(2_820_510), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(10_575_225), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(16_070_940), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 156_900_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 130_500_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 14_093_500_000_000_100, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 105_750_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 236_784_720_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(135, &mut scenario); // stage 5
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(23_156_640), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(16_330_770), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(48_004_215), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(5_878_530), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(22_047_390), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(21_854_880), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 231_600_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 163_350_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 29_393_500_000_000_100, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 220_500_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 291_427_580_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(135, &mut scenario); // stage 6
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(30_447_585), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(19_527_030), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(48_004_215), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(8_938_575), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(33_519_420), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(27_640_440), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 304_500_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 195_300_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 44_693_500_000_000_100, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 335_250_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 346_070_440_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(135, &mut scenario); // stage 7
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(37_560_600), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(22_634_325), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(48_004_215), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(11_998_485), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(44_996_040), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(33_429_375), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 375_600_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 226_350_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 59_993_500_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 450_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 400_713_300_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(135, &mut scenario); // stage 8
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(44_488_530), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(25_648_200), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(48_004_215), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(11_998_485), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(44_996_040), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(39_215_880), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 444_900_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 256_500_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 59_993_500_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 450_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 455_356_159_999_999_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(135, &mut scenario); // stage 9
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(51_238_395), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(28_570_140), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(48_004_215), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(11_998_485), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(44_996_040), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(45_004_680), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 512_400_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 285_750_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 59_993_500_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 450_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 509_998_999_999_999_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(135, &mut scenario); // stage 10
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(57_810_600), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(31_404_735), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(48_004_215), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(11_998_485), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(44_996_040), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(45_004_680), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 578_100_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 314_100_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 59_993_500_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 450_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 509_998_999_999_999_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(135, &mut scenario); // stage 11
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(64_198_665), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(34_148_745), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(48_004_215), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(11_998_485), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(44_996_040), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(45_004_680), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 642_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 341_550_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 59_993_500_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 450_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 509_998_999_999_999_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(135, &mut scenario); // stage 12
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(70_411_230), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(36_805_680), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(48_004_215), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(11_998_485), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(44_996_040), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(45_004_680), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 704_100_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 368_100_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 59_993_500_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 450_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 509_998_999_999_999_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(135, &mut scenario); // stage 13
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(76_439_520), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(39_371_895), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(48_004_215), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(11_998_485), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(44_996_040), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(45_004_680), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 764_400_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 393_750_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 59_993_500_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 450_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 509_998_999_999_999_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         batch_mint(135, &mut scenario); // stage 14
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(82_284_615), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(41_845_095), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(48_004_215), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(11_998_485), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(44_996_040), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(45_004_680), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 822_900_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 418_500_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 59_993_500_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 450_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 509_998_999_999_999_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
-        batch_mint(180, &mut scenario); // stage 15
+        batch_mint(179, &mut scenario); // stage 15
         scenario.next_tx(RANDOM_PERSON);
         {
             let mut vault: Vault = scenario.take_shared();
-            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), cents(89_993_475), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), cents(44_990_595), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), cents(48_004_215), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), cents(11_998_485), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), cents(44_996_040), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), cents(45_004_680), &scenario);
-            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), cents(15_000_000), &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 899_571_659_999_999_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 449_825_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 59_993_500_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 450_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 509_998_999_999_999_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
+            test_scenario::return_shared(vault);
+        };
+        batch_mint(1, &mut scenario); // stage 16
+        scenario.next_tx(RANDOM_PERSON);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            assert_pool_eq_chirp_coin(&mut vault, KEEPERS.to_string(), 899_998_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ECOSYSTEM_GROWTH_POOL.to_string(), 449_998_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, STRATEGIC_SUPPORTERS.to_string(), 479_999_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, ADVISORS.to_string(), 59_993_500_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TEAM.to_string(), 450_000_000_000_000_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, TOKEN_TREASURY.to_string(), 509_998_999_999_999_000, &scenario);
+            assert_pool_eq_chirp_coin(&mut vault, LIQUIDITY.to_string(), 150_000_000_000_000_000, &scenario);
             test_scenario::return_shared(vault);
         };
         scenario.end();
@@ -407,10 +420,5 @@ module blhnsuicntrtctkn::schedule_tests {
             i = i + 1;
         };
         total
-    }
-
-    /// Returns the coin value in CHIRP cents
-    fun cents(value: u64): u64 {
-        value * 10000000000u64
     }
 }
