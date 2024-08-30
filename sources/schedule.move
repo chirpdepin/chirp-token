@@ -20,103 +20,103 @@ module blhnsuicntrtctkn::schedule {
             treasury::create_entry(
                 vector[STRATEGIC_SUPPORTERS.to_string(), TOKEN_TREASURY.to_string(), LIQUIDITY.to_string()],
                 vector[95_999_000_150_000_000, 127_498_997_300_000_000, 150_000_000_000_000_000],
-                1, 172800000, 0,
+                1, 3600000, 0,
             ),
             // Stage 1
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), STRATEGIC_SUPPORTERS.to_string(), TOKEN_TREASURY.to_string()],
                 vector[600_000_000_000_000, 600_000_000_000_000, 1_920_000_000_000_000, 404_762_000_000_000],
-                45, 172800000, 0,
+                45, 3600000, 0,
             ),
             // Stage 2
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), STRATEGIC_SUPPORTERS.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
                 vector[593_333_330_000_000, 600_000_000_000_000, 1_653_333_330_000_000, 47_726_669_000_000, 375_000_000_000_000, 404_762_000_000_000],
-                45, 172800000, 0,
+                45, 3600000, 0,
             ),
             // Stage 3
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), STRATEGIC_SUPPORTERS.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
                 vector[580_000_000_000_000, 600_000_000_000_000, 1_653_333_330_000_000, 50_000_000_000_000, 375_000_000_000_000, 404_761_890_000_000],
-                90, 172800000, 0,
+                90, 3600000, 0,
             ),
             // Stage 4
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), STRATEGIC_SUPPORTERS.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
                 vector[566_666_670_000_000, 250_000_000_000_000, 826_666_670_000_000, 81_666_670_000_000, 612_500_000_000_000, 404_761_890_000_000],
-                90, 172800000, 0,
+                90, 3600000, 0,
             ),
             // Stage 5
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
                 vector[553_333_330_000_000, 243_333_330_000_000, 113_333_330_000_000, 850_000_000_000_000, 404_761_930_000_000],
-                135, 172800000, 0,
+                135, 3600000, 0,
             ),
             // Stage 6
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
                 vector[540_000_000_000_000, 236_666_670_000_000, 113_333_330_000_000, 850_000_000_000_000, 404_761_930_000_000],
-                135, 172800000, 0,
+                135, 3600000, 0,
             ),
             // Stage 7
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), ADVISORS.to_string(), TEAM.to_string(), TOKEN_TREASURY.to_string()],
                 vector[526_666_670_000_000, 230_000_000_000_000, 113_333_330_000_000, 850_000_000_000_000, 404_761_930_000_000],
-                135, 172800000, 0,
+                135, 3600000, 0,
             ),
             // Stage 8
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), TOKEN_TREASURY.to_string()],
                 vector[513_333_330_000_000, 223_333_330_000_000, 404_761_930_000_000],
-                135, 172800000, 0,
+                135, 3600000, 0,
             ),
             // Stage 9
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string(), TOKEN_TREASURY.to_string()],
                 vector[500_000_000_000_000, 216_666_670_000_000, 404_761_780_000_000],
-                135, 172800000, 0,
+                135, 3600000, 0,
             ),
             // Stage 10
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[486_666_670_000_000, 210_000_000_000_000],
-                135, 172800000, 0,
+                135, 3600000, 0,
             ),
             // Stage 11
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[473_333_330_000_000, 203_333_330_000_000],
-                135, 172800000, 0,
+                135, 3600000, 0,
             ),
             // Stage 12
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[460_000_000_000_000, 196_666_670_000_000],
-                135, 172800000, 0,
+                135, 3600000, 0,
             ),
             // Stage 13
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[446_666_670_000_000, 190_000_000_000_000],
-                135, 172800000, 0,
+                135, 3600000, 0,
             ),
             // Stage 14
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[433_333_330_000_000, 183_333_330_000_000],
-                135, 172800000, 0,
+                135, 3600000, 0,
             ),
             // Stage 15
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[428_333_300_000_000, 175_000_000_000_000],
-                179, 172800000, 0,
+                179, 3600000, 0,
             ),
             // Stage 16
             treasury::create_entry(
                 vector[KEEPERS.to_string(), ECOSYSTEM_GROWTH_POOL.to_string()],
                 vector[426_339_600_000_000, 173_000_450_000_000],
-                1, 172800000, 0,
+                1, 3600000, 0,
             ),
         ]
     }
@@ -156,7 +156,7 @@ module blhnsuicntrtctkn::schedule_tests {
 
             // First mint might happen immediately
             chirp::mint(&mut vault, &clock, scenario.ctx());
-            clock.increment_for_testing(172800000);
+            clock.increment_for_testing(3600000);
 
             test_scenario::return_shared(vault);
             test_scenario::return_shared(clock);
@@ -400,7 +400,7 @@ module blhnsuicntrtctkn::schedule_tests {
 
             while (number_of_epochs > 0) {
                 chirp::mint(&mut vault, &clock, scenario.ctx());
-                clock.increment_for_testing(172800000);
+                clock.increment_for_testing(3600000);
                 number_of_epochs = number_of_epochs - 1;
             };
 
