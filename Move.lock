@@ -26,9 +26,3 @@ edition = "2024.beta"
 flavor = "sui"
 
 [env]
-
-[env.testnet]
-chain-id = "4c78adac"
-original-published-id = "0x6992b6c5ac323976d43c251c5b70bb0ce4c805d05ca23ec48336f7cd93bdff6a"
-latest-published-id = "0x6992b6c5ac323976d43c251c5b70bb0ce4c805d05ca23ec48336f7cd93bdff6a"
-published-version = "1"
