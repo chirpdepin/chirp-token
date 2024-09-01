@@ -31,13 +31,13 @@ module blhnsuicntrtctkn::pool_dispatcher {
             id: object::new(ctx),
             pools: bag::new(ctx),
         };
-        dispatcher.pools.add(KEEPERS.to_string(), @0x67f0c9fab4b0ec5877fe83503a3b5a91b603d0e6492a7f1089d95a154c0dd7d3);
-        dispatcher.pools.add(ECOSYSTEM_GROWTH_POOL.to_string(), @0x5db6f60a78cfef7232934c333913db48a261f6a075124c3be144d11d34a72000);
-        dispatcher.pools.add(STRATEGIC_SUPPORTERS.to_string(), @0x493b6b57bb2af12602a1108d6616c839a990940d728e7727b5c4fa172662f4eb);
-        dispatcher.pools.add(TOKEN_TREASURY.to_string(), @0x9468dafb7beecde3e36d64e18e714b7cc034ee49f15abb99ff1a4d6f78a242b5);
-        dispatcher.pools.add(TEAM.to_string(), @0x3ab1a6d8193549f1b608ae8abb9563f7ff9098a2110d8a9f0d71ce230e475dd6);
-        dispatcher.pools.add(ADVISORS.to_string(), @0x69f0e03cd4f1f09e75e23362c15e07513effe7a01b18ac4bffbd5ac897bf53f0);
-        dispatcher.pools.add(LIQUIDITY.to_string(), @0xb96a9f21aa7847d8fd7fab5d913395b1be99c41aa521eca2097e670a92a0a0b7);
+        dispatcher.pools.add(KEEPERS.to_string(), @0xb933a40acfc93c76497594b61846a467852cbe69d05dcf5e6bdac854455244dc);
+        dispatcher.pools.add(ECOSYSTEM_GROWTH_POOL.to_string(), @0xc3cf26f16dc0c7c77f0a6213c3e87adab3b8a97a0f5a840121a72200ebb62ca9);
+        dispatcher.pools.add(STRATEGIC_SUPPORTERS.to_string(), @0x045d9efa0ac428d510f36dd9c7647e22cbff50a11652d3d008a87c1014491932);
+        dispatcher.pools.add(TOKEN_TREASURY.to_string(), @0x8a7aee051362c9a7336ad1cd9eca9703294349a74e7bb9310c9784e223a67870);
+        dispatcher.pools.add(TEAM.to_string(), @0xcb54d8e3160b554eea3a9493ec5bf5766263903e2ab3f5e6b8eb7470dce9f609);
+        dispatcher.pools.add(ADVISORS.to_string(), @0x931391f8d0c321a5a23a68f566a28fed705ff3cb621b7f1967a0f16a9081fd0a);
+        dispatcher.pools.add(LIQUIDITY.to_string(), @0x6b1d6f41388f9e0c6080b6823dc4ba672e32bfc4e68becc92c811d694352ec5f);
         return dispatcher
     }
 
