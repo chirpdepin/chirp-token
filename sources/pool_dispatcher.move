@@ -31,7 +31,7 @@ module blhnsuicntrtctkn::pool_dispatcher {
             id: object::new(ctx),
             pools: bag::new(ctx),
         };
-        dispatcher.pools.add(KEEPERS.to_string(), @0x5178c7c4cf934a58422b6cf9526fc59671f246d5a27f63db60474e187158de7);
+        dispatcher.pools.add(KEEPERS.to_string(), @0x5178c7c4cf934a58422b6cf9526fc59671f246d5a27f63db60474e187158de75);
         dispatcher.pools.add(ECOSYSTEM_GROWTH_POOL.to_string(), @0x1edc6ce4230130ace71a2280bcfe43ba161bf9754080fe224aff0f3849d7c30b);
         dispatcher.pools.add(STRATEGIC_SUPPORTERS.to_string(), @0xead69d610b981d13f2f3d7a964cc6b94f2d52cfa8b5ac138c38f2c466543b4f2);
         dispatcher.pools.add(TOKEN_TREASURY.to_string(), @0xded0cfc31d035545273f4cb9dd0648c52575062c9a4e37432c6ca3d5579f7a83);
