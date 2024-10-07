@@ -6,9 +6,13 @@
 /// complemented by an administration capability enabled via the ScheduleAdminCap.
 module blhnsuicntrtctkn::treasury {
     // === Imports ===
-    use sui::coin::{Self, Coin, TreasuryCap};
-    use sui::clock::{Clock};
     use std::string::{String};
+    use sui::clock::{Clock};
+    use sui::coin::{Self, Coin, TreasuryCap};
+    use sui::dynamic_field as df;
+
+    // === Constants ===
+    const MINT_BLOCKED: vector<u8> = b"mint_blocked";
 
     // === Errors ===
     /// Error code returned when the minting schedule has ended.
@@ -22,6 +26,8 @@ module blhnsuicntrtctkn::treasury {
     /// Error code returned when the specified index for a schedule operation
     /// is outside the allowable range.
     const EIndexOutOfRange: u64 = 3;
+    /// Error code returned when minting is blocked.
+    const EMintBlocked: u64 = 4;
 
     // === Structs ===
     /// Represents a specific phase within the minting schedule.
@@ -87,13 +93,15 @@ module blhnsuicntrtctkn::treasury {
         schedule: vector<ScheduleEntry<T>>,
         ctx: &mut TxContext,
     ): Treasury<T> {
-        Treasury {
+        let mut treasury = Treasury {
             id: object::new(ctx),
             max_supply: max_supply,
             schedule: schedule,
             cap: cap,
             current_entry: 0,
-        }
+        };
+        df::add(&mut treasury.id, MINT_BLOCKED, true);
+        treasury
     }
 
     /// Creates a new schedule entry with the specified parameters.
@@ -216,6 +224,7 @@ module blhnsuicntrtctkn::treasury {
     public(package) fun mint<T>(treasury: &mut Treasury<T>, clock: &Clock, ctx: &mut TxContext): (vector<String>, vector<Coin<T>>){
         assert!(treasury.schedule.length() > 0, EMintLimitReached);
         assert!(treasury.current_entry < treasury.schedule.length(), EMintLimitReached);
+        assert!(!df::exists_(&treasury.id, MINT_BLOCKED), EMintBlocked);
         let entry = &mut treasury.schedule[treasury.current_entry];
         let (pools, coins) = mint_entry(entry, treasury.max_supply, &mut treasury.cap, clock, ctx);
         if (entry.current_epoch == entry.stage.number_of_epochs) {
@@ -236,6 +245,10 @@ module blhnsuicntrtctkn::treasury {
         ctx: &mut TxContext,
     ):Coin<T> {
         coin::mint(&mut treasury.cap, amount, ctx)
+    }
+
+    public(package) fun unblock_minting<T>(treasury: &mut Treasury<T>) {
+        df::remove_if_exists<vector<u8>, bool>(&mut treasury.id, MINT_BLOCKED);
     }
 
     // === Internal functions ===
@@ -349,6 +362,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             destroy_pools_and_coins(pools, coins);
             test_scenario::return_shared(treasury);
@@ -374,6 +388,7 @@ module blhnsuicntrtctkn::treasury_tests {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
             treasury.set_entry(0, treasury::create_entry(vector[TEST_POOL1.to_string()], vector[1337], 1, 3600, 0));
+            treasury.unblock_minting();
             // Should mint 3117 coins
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             assert_eq_pools_and_coins(&pools, &coins, vector[TEST_POOL1.to_string()], vector[1337]);
@@ -395,6 +410,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             destroy_pools_and_coins(pools, coins);
 
@@ -435,6 +451,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             destroy_pools_and_coins(pools, coins);
 
@@ -456,6 +473,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
             // Do not errors because the schedule was not started yet.
             treasury.insert_entry(0, treasury::create_entry(vector[TEST_POOL1.to_string()], vector[200], 1, 3600, 0));
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
@@ -477,6 +495,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let mut clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
 
             // Do not errors because the index is at the end of the schedule.
             treasury.insert_entry(1, treasury::create_entry(vector[TEST_POOL1.to_string()], vector[200], 1, 3600, 0));
@@ -519,6 +538,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             destroy_pools_and_coins(pools, coins);
             // Fails because the stage was already minted
@@ -553,6 +573,7 @@ module blhnsuicntrtctkn::treasury_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
+            treasury.unblock_minting();
             let clock: Clock = scenario.take_shared();
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             destroy_pools_and_coins(pools, coins);
@@ -571,6 +592,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             assert_eq_pools_and_coins(&pools, &coins, vector[TEST_POOL1.to_string(), TEST_POOL2.to_string()], vector[100, 200]);
             destroy_pools_and_coins(pools, coins);
@@ -590,6 +612,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
 
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             destroy_pools_and_coins(pools, coins);
@@ -614,6 +637,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let mut clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
 
             // The minting for the first epoch should succeed.
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
@@ -644,6 +668,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let mut clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
             // The minting for the first epoch of first stage should succeed.
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             clock.increment_for_testing(1000);
@@ -672,6 +697,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             destroy_pools_and_coins(pools, coins);
             // Minting must not succeed until at least 1000 ms have passed since the last epoch of the initial stage.
@@ -697,6 +723,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let mut clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             destroy_pools_and_coins(pools, coins);
             clock.increment_for_testing(1000);
@@ -720,6 +747,7 @@ module blhnsuicntrtctkn::treasury_tests {
         {
             let mut treasury: Treasury<TREASURY_TESTS> = scenario.take_shared();
             let mut clock: Clock = scenario.take_shared();
+            treasury.unblock_minting();
             let (pools, coins) = treasury.mint(&clock, scenario.ctx());
             destroy_pools_and_coins(pools, coins);
             clock.increment_for_testing(1000);

@@ -315,7 +315,7 @@ module blhnsuicntrtctkn::schedule {
 
 #[test_only]
 module blhnsuicntrtctkn::schedule_tests {
-    use blhnsuicntrtctkn::chirp::{Self, CHIRP, Vault};
+    use blhnsuicntrtctkn::chirp::{Self, CHIRP, ScheduleAdminCap, Vault};
     use std::string::{String};
     use sui::clock::{Self, Clock};
     use sui::coin::{Self};
@@ -339,6 +339,16 @@ module blhnsuicntrtctkn::schedule_tests {
         {
             chirp::init_for_testing(scenario.ctx());
             clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+
+            chirp::unblock_minting(&cap, &mut vault);
+
+            test_scenario::return_to_sender(&scenario, cap);
+            test_scenario::return_shared(vault);
         };
         batch_mint(1, &mut scenario); // stage 0
         scenario.next_tx(RANDOM_PERSON);
