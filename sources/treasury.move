@@ -230,6 +230,14 @@ module blhnsuicntrtctkn::treasury {
         return (pools, coins)
     }
 
+    public(package) fun premint<T>(
+        treasury: &mut Treasury<T>,
+        amount: u64,
+        ctx: &mut TxContext,
+    ):Coin<T> {
+        coin::mint(&mut treasury.cap, amount, ctx)
+    }
+
     // === Internal functions ===
 
     /// Mint coins following the specified parameters and return the time for

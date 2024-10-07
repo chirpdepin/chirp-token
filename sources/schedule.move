@@ -10,7 +10,6 @@ module blhnsuicntrtctkn::schedule {
     const ADVISORS: vector<u8> = b"advisors";
     const TEAM: vector<u8> = b"team";
     const TOKEN_TREASURY: vector<u8> = b"token_treasury";
-    const LIQUIDITY: vector<u8> = b"liquidity";
 
     // === Public package functions ===
     /// Returns the default minting schedule
@@ -18,8 +17,8 @@ module blhnsuicntrtctkn::schedule {
         vector[
             // Stage 0
             treasury::create_entry(
-                vector[STRATEGIC_SUPPORTERS.to_string(), TOKEN_TREASURY.to_string(), LIQUIDITY.to_string()],
-                vector[96_000_000_000_000_000, 127_500_000_000_000_000, 150_000_000_000_000_000],
+                vector[STRATEGIC_SUPPORTERS.to_string(), TOKEN_TREASURY.to_string()],
+                vector[96_000_000_000_000_000, 127_500_000_000_000_000],
                 1, 3600000, 0,
             ),
 

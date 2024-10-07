@@ -111,9 +111,22 @@ module blhnsuicntrtctkn::chirp {
         vault.registry.add(POOL_DISPATCHER.to_string(), pool_dispatcher::default(ctx));
         vault.registry.add(TREASURY.to_string(), treasury::create(treasury_cap, COIN_MAX_SUPPLY, schedule::default(), ctx));
         vault.registry.add(DEPOSITORY.to_string(), object_table::new<address, Coin<CHIRP>>(ctx));
-        transfer::transfer(ScheduleAdminCap{id:object::new(ctx)}, ctx.sender());
 
+        vault.premint(ctx);
+
+        transfer::transfer(ScheduleAdminCap{id:object::new(ctx)}, ctx.sender());
         transfer::share_object(vault);
+    }
+
+    fun premint(vault: &mut Vault, ctx : &mut TxContext) {
+        let coin = {
+            let treasury: &mut Treasury<CHIRP> = vault.treasury();
+            treasury.premint(150_000_000_000_000_000,ctx)
+        };
+        {
+            let dispatcher: &mut PoolDispatcher = vault.pool_dispatcher();
+            dispatcher.transfer(b"liquidity".to_string(), coin);
+        }
     }
 
     /// Mints new CHIRP tokens according to the predefined schedule.
