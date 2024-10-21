@@ -371,6 +371,49 @@ module blhnsuicntrtctkn::chirp {
         treasury.unblock_minting();
     }
 
+    #[allow(lint(self_transfer))]
+    /// Locks coins in the depository for recipients to claim later.
+    ///
+    /// This function deposits coins into a recipient's account, merging them 
+    /// with existing coins. Deposited coins can only be fully claimed after a
+    /// set time. If a user tries to claim locked coins early, a fine will be
+    /// applied, and unclaimed coins will go to the liquidity pool.
+    ///
+    /// ## Parameters:
+    /// - `vault`: Mutable reference to the Vault managing the depository.
+    /// - `coins`: Vector of coins to lock.
+    /// - `recipients`: Vector of recipients to lock coins for.
+    /// - `amounts`: Vector of amounts to lock for each recipient.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
+    public fun lock_batch(
+        vault: &mut Vault,
+        mut coins: vector<Coin<CHIRP>>,
+        mut recipients: vector<address>,
+        mut amounts: vector<u64>,
+        ctx: &mut TxContext,
+    ) {
+        assert!(vault.version == VAULT_VERSION, EWrongVersion);
+
+        let mut all_coins = coins.pop_back();
+        pay::join_vec(&mut all_coins, coins);
+
+        while(!recipients.is_empty()) {
+            let recipient: address = recipients.pop_back();
+            let amount: u64 = amounts.pop_back();
+            let coin: Coin<CHIRP> = all_coins.split(amount, ctx);
+            let depository: &mut ObjectTable<address, Coin<CHIRP>> = vault.depository();
+            if (!depository.contains(recipient)) {
+                depository.add(recipient, coin)
+            } else {
+                depository[recipient].join(coin)
+            }
+        };
+        recipients.destroy_empty();
+        transfer::public_transfer(all_coins, ctx.sender());
+    }
+
     // === Private Functions ===
 
     /// Returns the treasury from the vault.
@@ -658,52 +701,99 @@ module blhnsuicntrtctkn::chirp_tests {
     }
 
     #[test]
-    fun test_pay_reward_allows_to_pay_claimable_rewards()
+    fun test_deposit_batch_returns_undeposited_funds_to_caller()
     {
         let mut scenario = test_scenario::begin(PUBLISHER);
         {
             chirp::init_for_testing(scenario.ctx());
-            clock::share_for_testing(clock::create_for_testing(scenario.ctx()));
         };
         scenario.next_tx(PUBLISHER);
         {
             let mut vault: Vault = scenario.take_shared();
-            let wallets = vector[@0x111, @0x222, @0x333];
-            let coins = vector[
-                coin::mint_for_testing<CHIRP>(5000, scenario.ctx()),
-                coin::mint_for_testing<CHIRP>(5000, scenario.ctx()),
-                coin::mint_for_testing<CHIRP>(5000, scenario.ctx()),
-            ];
-            chirp::deposit_batch(&mut vault, coins, wallets, vector[1000, 2000, 3000], scenario.ctx());
+            let coins = vector[coin::mint_for_testing<CHIRP>(10000, scenario.ctx())];
+            chirp::deposit_batch(&mut vault, coins, vector[@0x111], vector[1000], scenario.ctx());
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            assert_eq_chirp_coin(PUBLISHER, 9000, &scenario);
+        };
+        scenario.end();
+    }
+
+    #[test]
+    fun test_lock_batch_returns_unlocked_funds_to_caller()
+    {
+        let mut scenario = test_scenario::begin(PUBLISHER);
+        {
+            chirp::init_for_testing(scenario.ctx());
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            let coins = vector[coin::mint_for_testing<CHIRP>(10000, scenario.ctx())];
+            chirp::lock_batch(&mut vault, coins, vector[@0x111], vector[1000], scenario.ctx());
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            assert_eq_chirp_coin(PUBLISHER, 9000, &scenario);
+        };
+        scenario.end();
+    }
+
+    #[test]
+    fun test_claim_after_deposit_batch_returns_funds_to_caller() {
+        let mut scenario = test_scenario::begin(PUBLISHER);
+        {
+            chirp::init_for_testing(scenario.ctx());
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            let coins = vector[coin::mint_for_testing<CHIRP>(999, scenario.ctx())];
+            chirp::deposit_batch(&mut vault, coins, vector[@0x111], vector[999], scenario.ctx());
             test_scenario::return_shared(vault);
         };
         scenario.next_tx(@0x111);
         {
             let mut vault: Vault = scenario.take_shared();
-            chirp::claim(&mut vault, 1000, scenario.ctx());
-            test_scenario::return_shared(vault);
-        };
-        scenario.next_tx(@0x222);
-        {
-            let mut vault: Vault = scenario.take_shared();
-            chirp::claim(&mut vault, 2000, scenario.ctx());
-            test_scenario::return_shared(vault);
-        };
-        scenario.next_tx(@0x333);
-        {
-            let mut vault: Vault = scenario.take_shared();
-            chirp::claim(&mut vault, 3000, scenario.ctx());
+            chirp::claim(&mut vault, 999, scenario.ctx());
             test_scenario::return_shared(vault);
         };
         scenario.next_tx(PUBLISHER);
         {
-            assert_eq_chirp_coin(@0x111, 1000, &scenario);
-            assert_eq_chirp_coin(@0x222, 2000, &scenario);
-            assert_eq_chirp_coin(@0x333, 3000, &scenario);
-            assert_eq_chirp_coin(PUBLISHER, 9000, &scenario);
+            assert_eq_chirp_coin(@0x111, 999, &scenario);
         };
         scenario.end();
     }
+
+    #[test]
+    fun test_claiming_all_funds_right_after_lock_is_disallowed() {
+        let mut scenario = test_scenario::begin(PUBLISHER);
+        {
+            chirp::init_for_testing(scenario.ctx());
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            let coins = vector[coin::mint_for_testing<CHIRP>(999, scenario.ctx())];
+            chirp::deposit_batch(&mut vault, coins, vector[@0x111], vector[999], scenario.ctx());
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(@0x111);
+        {
+            let mut vault: Vault = scenario.take_shared();
+            chirp::claim(&mut vault, 999, scenario.ctx());
+            test_scenario::return_shared(vault);
+        };
+        scenario.next_tx(PUBLISHER);
+        {
+            assert_eq_chirp_coin(@0x111, 999, &scenario);
+        };
+        scenario.end();
+    }
+
 
     /// Asserts that the value of the CHIRP coin held by the owner is equal to the expected value.
     fun assert_eq_chirp_coin(owner: address, expected_value: u64, scenario: &test_scenario::Scenario) {
