@@ -111,8 +111,10 @@ module blhnsuicntrtctkn::chirp {
         vault.registry.add(POOL_DISPATCHER.to_string(), pool_dispatcher::default(ctx));
         vault.registry.add(TREASURY.to_string(), treasury::create(treasury_cap, COIN_MAX_SUPPLY, schedule::default(), ctx));
         vault.registry.add(DEPOSITORY.to_string(), object_table::new<address, Coin<CHIRP>>(ctx));
-        transfer::transfer(ScheduleAdminCap{id:object::new(ctx)}, ctx.sender());
 
+        vault.premint(ctx);
+
+        transfer::transfer(ScheduleAdminCap{id:object::new(ctx)}, ctx.sender());
         transfer::share_object(vault);
     }
 
@@ -348,6 +350,27 @@ module blhnsuicntrtctkn::chirp {
         transfer::public_transfer(all_coins, ctx.sender());
     }
 
+    /// Unblocks minting of CHIRP tokens.
+    ///
+    /// This function allows authorized users, holding the ScheduleAdminCap, to
+    /// unblock minting of CHIRP tokens.
+    ///
+    /// ## Parameters:
+    /// - `_`: Reference to the ScheduleAdminCap, ensuring execution by authorized users only.
+    /// - `vault`: Mutable reference to the Vault managing the minting schedule.
+    ///
+    /// ## Errors
+    /// - `EWrongVersion`: If the vault version does not match the VAULT_VERSION.
+    entry fun unblock_minting(
+        _: &ScheduleAdminCap,
+        vault: &mut Vault,
+    ) {
+        assert!(vault.version == VAULT_VERSION, EWrongVersion);
+
+        let treasury: &mut Treasury<CHIRP> = vault.treasury();
+        treasury.unblock_minting();
+    }
+
     // === Private Functions ===
 
     /// Returns the treasury from the vault.
@@ -364,6 +387,19 @@ module blhnsuicntrtctkn::chirp {
     fun depository(vault: &mut Vault): &mut ObjectTable<address, Coin<CHIRP>> {
         &mut vault.registry[DEPOSITORY.to_string()]
     }
+
+    /// Premints the initial supply of CHIRP tokens.
+    fun premint(vault: &mut Vault, ctx : &mut TxContext) {
+        let coin = {
+            let treasury: &mut Treasury<CHIRP> = vault.treasury();
+            treasury.premint(150_000_000_000_000_000,ctx)
+        };
+        {
+            let dispatcher: &mut PoolDispatcher = vault.pool_dispatcher();
+            dispatcher.transfer(b"liquidity".to_string(), coin);
+        }
+    }
+
 
     // === Test only functions ===
 
@@ -440,6 +476,7 @@ module blhnsuicntrtctkn::chirp_tests {
             let mut vault: Vault = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
             let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+            chirp::unblock_minting(&cap, &mut vault);
 
             // Setting zero mint params
             chirp::set_entry(&cap, &mut vault, 0, vector[TEST_POOL.to_string()], vector[1000], 1, 1000, 0);
@@ -498,6 +535,7 @@ module blhnsuicntrtctkn::chirp_tests {
             let mut vault: Vault = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
             let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+            chirp::unblock_minting(&cap, &mut vault);
 
             // inserting new zero mint stage
             chirp::insert_entry(&cap, &mut vault, 0, vector[TEST_POOL.to_string()], vector[1000], 1, 1000, 0);
@@ -554,6 +592,7 @@ module blhnsuicntrtctkn::chirp_tests {
             let mut vault: Vault = scenario.take_shared();
             let clock: Clock = scenario.take_shared();
             let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+            chirp::unblock_minting(&cap, &mut vault);
 
             chirp::insert_entry(&cap, &mut vault, 0, vector[TEST_POOL.to_string()], vector[1000], 1, 1000, 0);
             chirp::insert_entry(&cap, &mut vault, 1, vector[TEST_POOL.to_string()], vector[3117], 1, 1000, 0);
