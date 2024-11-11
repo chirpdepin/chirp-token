@@ -37,7 +37,7 @@ module blhnsuicntrtctkn::pool_dispatcher {
         dispatcher.pools.add(TOKEN_TREASURY.to_string(), @0xe73e73ec3403e5214a27a2b05932dda125259a1836fe75ccf6e04861bf01c7c1);
         dispatcher.pools.add(TEAM.to_string(), @0x06a80c7bf2d51920a51d26c3aa851e66fe2f827638d3b1b309eab304aaeecc15);
         dispatcher.pools.add(ADVISORS.to_string(), @0xa2b1d1dcd669fc87a06b610ef37c2945f3195cbf4dd301652d6cfab3f38faedf);
-        dispatcher.pools.add(LIQUIDITY.to_string(), @0xd647cadb203e0aa3edbf6143b17d6ac0d9e27ec2a1c284e79eef1917b0e8e318);
+        dispatcher.pools.add(LIQUIDITY.to_string(), @0x2a95bdd5d3fa8413654ad2ab84b8ec1c1c4e19afd7f094ee35926c55674b5966);
         return dispatcher
     }
 
