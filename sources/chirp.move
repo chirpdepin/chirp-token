@@ -40,7 +40,7 @@ module blhnsuicntrtctkn::chirp {
     /// 10,000,000,000 smallest units (cents) per CHIRP token.
     const COIN_DECIMALS: u8 = 10;
     /// Human-readable description of the CHIRP token.
-    const COIN_DESCRIPTION: vector<u8> = b"Chirp token description";
+    const COIN_DESCRIPTION: vector<u8> = b"CHIRP: The native token of Chirp’s DePIN ecosystem.";
     /// Official name of the CHIRP token.
     const COIN_NAME: vector<u8> = b"Chirp Token";
     /// Symbol for the CHIRP token, aligned with ISO 4217 formatting.
