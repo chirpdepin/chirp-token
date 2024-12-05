@@ -46,7 +46,7 @@ module blhnsuicntrtctkn::chirp {
     /// Symbol for the CHIRP token, aligned with ISO 4217 formatting.
     const COIN_SYMBOL: vector<u8> = b"CHIRP";
     /// Coin icon
-    const COIN_ICON: vector<u8> = b"https://storage.googleapis.com/chirp-blhn-assets/images/CHIRP_White_OBG.svg";
+    const COIN_ICON: vector<u8> = b"https://download.chirpwireless.io/images/CHIRP_White_OBG.svg";
     /// Current version of the vault.
     const VAULT_VERSION: u64 = 1;
     /// Pool dispatcher component name
