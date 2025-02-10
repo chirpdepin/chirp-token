@@ -71,7 +71,6 @@ module blhnsuicntrtctkn::pool_dispatcher {
        dispatcher.pools.contains(name) 
     }
 
-    #[test_only]
     public(package) fun add_address_pool(
         dispatcher: &mut PoolDispatcher,
         name: String,
