@@ -49,9 +49,9 @@ module blhnsuicntrtctkn::chirp {
     /// Coin icon
     const COIN_ICON: vector<u8> = b"https://download.chirpwireless.io/images/CHIRP_White_OBG.svg";
     /// Default vesting period.
-    const VESTING_PERIOD: u64 = 10;
+    const VESTING_PERIOD: u64 = 45;
     /// Default initial penalty.
-    const INITIAL_PENALTY: u64 = 9_000_000_000;
+    const INITIAL_PENALTY: u64 = 6_000_000_000;
     /// Current version of the vault.
     const VAULT_VERSION: u64 = 2;
     /// Pool dispatcher component name
@@ -910,8 +910,13 @@ module blhnsuicntrtctkn::chirp_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut vault: Vault = scenario.take_shared();
+            let vcap: VestingAdminCap = test_scenario::take_from_sender(&scenario);
+            chirp::set_vesting_penalty(&vcap, &mut vault, 9_000_000_000);
+
             let coins = vector[coin::mint_for_testing<CHIRP>(1000, scenario.ctx())];
             chirp::lock_batch(&mut vault, coins, vector[USER], vector[1000], scenario.ctx());
+
+            test_scenario::return_to_sender(&scenario, vcap);
             test_scenario::return_shared(vault);
         };
         scenario.next_tx(USER);
@@ -934,12 +939,13 @@ module blhnsuicntrtctkn::chirp_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut vault: Vault = scenario.take_shared();
-            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+            let vcap: VestingAdminCap = test_scenario::take_from_sender(&scenario);
+            chirp::set_vesting_penalty(&vcap, &mut vault, 9_000_000_000);
 
             let coins = vector[coin::mint_for_testing<CHIRP>(1000, scenario.ctx())];
             chirp::lock_batch(&mut vault, coins, vector[USER], vector[1000], scenario.ctx());
 
-            test_scenario::return_to_sender(&scenario, cap);
+            test_scenario::return_to_sender(&scenario, vcap);
             test_scenario::return_shared(vault);
         };
         scenario.next_tx(USER);
@@ -968,7 +974,8 @@ module blhnsuicntrtctkn::chirp_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut vault: Vault = scenario.take_shared();
-            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+            let vcap: VestingAdminCap = test_scenario::take_from_sender(&scenario);
+            chirp::set_vesting_penalty(&vcap, &mut vault, 9_000_000_000);
 
             // Depositing 1000 and locking 1000 coins
             let coins = vector[coin::mint_for_testing<CHIRP>(1000, scenario.ctx())];
@@ -976,7 +983,7 @@ module blhnsuicntrtctkn::chirp_tests {
             let coins = vector[coin::mint_for_testing<CHIRP>(1000, scenario.ctx())];
             chirp::deposit_batch(&mut vault, coins, vector[USER], vector[1000], scenario.ctx());
 
-            test_scenario::return_to_sender(&scenario, cap);
+            test_scenario::return_to_sender(&scenario, vcap);
             test_scenario::return_shared(vault);
         };
         scenario.next_tx(USER);
@@ -1004,7 +1011,8 @@ module blhnsuicntrtctkn::chirp_tests {
         scenario.next_tx(PUBLISHER);
         {
             let mut vault: Vault = scenario.take_shared();
-            let cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
+            let vcap: VestingAdminCap = test_scenario::take_from_sender(&scenario);
+            chirp::set_vesting_penalty(&vcap, &mut vault, 9_000_000_000);
 
             // Depositing 1000 and locking 1000 coins
             let coins = vector[coin::mint_for_testing<CHIRP>(1000, scenario.ctx())];
@@ -1012,7 +1020,7 @@ module blhnsuicntrtctkn::chirp_tests {
             let coins = vector[coin::mint_for_testing<CHIRP>(1000, scenario.ctx())];
             chirp::deposit_batch(&mut vault, coins, vector[USER], vector[1000], scenario.ctx());
 
-            test_scenario::return_to_sender(&scenario, cap);
+            test_scenario::return_to_sender(&scenario, vcap);
             test_scenario::return_shared(vault);
         };
         scenario.next_tx(USER);
@@ -1054,7 +1062,9 @@ module blhnsuicntrtctkn::chirp_tests {
         {
             let mut vault: Vault = scenario.take_shared();
             let vest_cap: VestingAdminCap = test_scenario::take_from_sender(&scenario);
+            chirp::set_vesting_penalty(&vest_cap, &mut vault, 9_000_000_000);
             chirp::set_vesting_period(&vest_cap, &mut vault, 20);
+
             let sched_cap: ScheduleAdminCap = test_scenario::take_from_sender(&scenario);
             chirp::unblock_minting(&sched_cap, &mut vault);
             test_scenario::return_shared(vault);
