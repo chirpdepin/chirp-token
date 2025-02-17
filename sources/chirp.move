@@ -523,7 +523,7 @@ module blhnsuicntrtctkn::chirp {
         assert!(vault.version < VAULT_VERSION, ENotUpgrade);
         if (vault.version == 1) {
             vault.registry.add(VESTING_LEDGER.to_string(), vesting_ledger::create<CHIRP>(VESTING_PERIOD, INITIAL_PENALTY, ctx));
-            vault.pool_dispatcher().add_address_pool(b"lookup".to_string(), @0xf984db9a25afa6c73aae9ba20ff9c43919ac717881d6dfbb7d0149b7888e8b42);
+            vault.pool_dispatcher().add_address_pool(b"lookup".to_string(), @0xa65694ba9f7bc5370e532c9616d0a720d9843975fb55d21848ced91051a1ec03);
             transfer::transfer(VestingAdminCap{id:object::new(ctx)}, ctx.sender());
             vault.version = vault.version + 1;
         };
