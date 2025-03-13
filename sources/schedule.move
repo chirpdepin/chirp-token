@@ -915,7 +915,7 @@ module blhnsuicntrtctkn::schedule_tests {
 
             while (number_of_epochs > 0) {
                 chirp::mint(&mut vault, &clock, scenario.ctx());
-                clock.increment_for_testing(3600000);
+                clock.increment_for_testing(172800000);
                 number_of_epochs = number_of_epochs - 1;
             };
 
