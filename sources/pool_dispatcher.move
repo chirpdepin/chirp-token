@@ -12,6 +12,7 @@ module blhnsuicntrtctkn::pool_dispatcher {
     const TEAM: vector<u8> = b"team";
     const TOKEN_TREASURY: vector<u8> = b"token_treasury";
     const LIQUIDITY: vector<u8> = b"liquidity";
+    const LOCKUP: vector<u8> = b"lockup";
 
     // === Structs ===
 
@@ -38,6 +39,7 @@ module blhnsuicntrtctkn::pool_dispatcher {
         dispatcher.pools.add(TEAM.to_string(), @0x06a80c7bf2d51920a51d26c3aa851e66fe2f827638d3b1b309eab304aaeecc15);
         dispatcher.pools.add(ADVISORS.to_string(), @0xa2b1d1dcd669fc87a06b610ef37c2945f3195cbf4dd301652d6cfab3f38faedf);
         dispatcher.pools.add(LIQUIDITY.to_string(), @0x2a95bdd5d3fa8413654ad2ab84b8ec1c1c4e19afd7f094ee35926c55674b5966);
+        dispatcher.pools.add(LOCKUP.to_string(), @0xa65694ba9f7bc5370e532c9616d0a720d9843975fb55d21848ced91051a1ec03);
         return dispatcher
     }
 
@@ -69,7 +71,6 @@ module blhnsuicntrtctkn::pool_dispatcher {
        dispatcher.pools.contains(name) 
     }
 
-    #[test_only]
     public(package) fun add_address_pool(
         dispatcher: &mut PoolDispatcher,
         name: String,
